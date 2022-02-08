@@ -1,0 +1,416 @@
+cdahms@aurora-R12:~/workspace-av/lyft-3d-det$ python3 2_train.py 
+/usr/local/lib/python3.8/dist-packages/numba/cuda/decorators.py:110: NumbaDeprecationWarning: Eager compilation of device functions is deprecated (this occurs when a signature is provided)
+  warn(NumbaDeprecationWarning(msg))
+
+using GPU
+
+num parameters: 66
+9 category,
+18 attribute,
+4 visibility,
+18421 instance,
+10 sensor,
+148 calibrated_sensor,
+177789 ego_pose,
+180 log,
+180 scene,
+22680 sample,
+189504 sample_data,
+638179 sample_annotation,
+1 map,
+Done loading in 4.8 seconds.
+======
+Reverse indexing ...
+Done reverse indexing in 1.4 seconds.
+======
+in MyLyftDataset init
+in MyLyftDataset init
+model: {
+  second: {
+    network_class_name: "VoxelNet"
+    voxel_generator {
+      point_cloud_range : [-50, -50, -10, 50, 50, 10]
+      voxel_size : [0.25, 0.25, 20]
+      max_number_of_points_per_voxel : 60
+    }
+    voxel_feature_extractor: {
+      module_class_name: "PillarFeatureNet"
+      num_filters: [64]
+      with_distance: false
+      num_input_features: 4
+    }
+    middle_feature_extractor: {
+      module_class_name: "PointPillarsScatter"
+      downsample_factor: 1
+      num_input_features: 64
+    }
+    rpn: {
+      module_class_name: "RPNV2"
+      layer_nums: [3, 5, 5]
+      layer_strides: [2, 2, 2]
+      num_filters: [64, 128, 256]
+      upsample_strides: [0.25, 0.5, 1]
+      num_upsample_filters: [128, 128, 128]
+      use_groupnorm: false
+      num_groups: 32
+      num_input_features: 64
+    }
+    loss: {
+      classification_loss: {
+        weighted_sigmoid_focal: {
+          alpha: 0.25
+          gamma: 2.0
+          anchorwise_output: true
+        }
+      }
+      localization_loss: {
+        weighted_smooth_l1: {
+          sigma: 3.0
+          code_weight: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        }
+      }
+      classification_weight: 1.0
+      localization_weight: 2.0
+    }
+    num_point_features: 4 # model's num point feature should be independent of dataset
+    # Outputs
+    use_sigmoid_score: true
+    encode_background_as_zeros: true
+    encode_rad_error_by_sin: true
+    sin_error_factor: 1.0
+
+    use_direction_classifier: true
+    direction_loss_weight: 0.2
+    num_direction_bins: 2
+    direction_limit_offset: 0
+    direction_offset: 0.78
+
+    # Loss
+    pos_class_weight: 1.0
+    neg_class_weight: 1.0
+
+    loss_norm_type: NormByNumPositives
+    # Postprocess
+    post_center_limit_range: [-59.6, -59.6, -10, 59.6, 59.6, 10]
+    nms_class_agnostic: false # only valid in multi-class nms
+    box_coder: {
+      ground_box3d_coder: {
+        linear_dim: false
+        encode_angle_vector: false
+      }
+    }
+    target_assigner: {
+      class_settings: {
+        class_name: "car"
+        anchor_generator_range: {
+          sizes: [1.93017717, 4.76718145, 1.72270761] # wlh
+          anchor_ranges: [-49.6, -49.6, -1.07, 49.6, 49.6, -1.07]
+          rotations: [0, 1.57] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.4
+        unmatched_threshold : 0.3
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {}
+        }
+      }
+      class_settings: {
+        class_name: "bicycle"
+        anchor_generator_range: {
+          sizes: [0.63058911, 1.76452161, 1.44192197] # wlh
+          anchor_ranges: [-49.6, -49.6, -1.07, 49.6, 49.6, -1.07]
+          rotations: [0, 1.57] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.2
+        unmatched_threshold : 0.15
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {}
+        }
+      }
+      class_settings: {
+        class_name: "animal"
+        anchor_generator_range: {
+          sizes: [0.36058911, 0.73452161, 0.5192197] # wlh
+          anchor_ranges: [-49.6, -49.6, -1.79, 49.6, 49.6, -1.79]
+          rotations: [0, 1.57] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.2
+        unmatched_threshold : 0.15
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {}
+        }
+      }
+      class_settings: {
+        class_name: "bus"
+        anchor_generator_range: {
+          sizes: [2.96046906, 12.3485991, 3.44030982] # wlh
+          anchor_ranges: [-49.6, -49.6, -0.35, 49.6, 49.6, -0.35]
+          rotations: [0, 1.57] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.3
+        unmatched_threshold : 0.15
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {}
+        }
+      }
+      class_settings: {
+        class_name: "emergency_vehicle"
+        anchor_generator_range: {
+          sizes: [2.45046906, 6.5285991, 2.39030982] # wlh
+          anchor_ranges: [-49.6, -49.6, -0.88, 49.6, 49.6, -0.88]
+          rotations: [0, 1.57] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.5
+        unmatched_threshold : 0.35
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {}
+        }
+      }
+
+      class_settings: {
+        class_name: "other_vehicle"
+        anchor_generator_range: {
+          sizes: [2.79050468, 8.20352896, 3.23312415] # wlh
+          anchor_ranges: [-49.6, -49.6, -0.62, 49.6, 49.6, -0.62]
+          rotations: [0, 1.57] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.5
+        unmatched_threshold : 0.3
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {}
+        }
+      }
+      class_settings: {
+        class_name: "motorcycle"
+        anchor_generator_range: {
+          sizes: [0.96279481, 2.35973778, 1.59403034] # wlh
+          anchor_ranges: [-49.6, -49.6, -1.32, 49.6, 49.6, -1.32]
+          rotations: [0, 1.57] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.2
+        unmatched_threshold : 0.15
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {}
+        }
+      }
+      class_settings: {
+        class_name: "pedestrian"
+        anchor_generator_range: {
+          sizes: [0.77344886, 0.8156437, 1.78748069] # wlh
+          anchor_ranges: [-49.6, -49.6, -0.91, 49.6, 49.6, -0.91]
+          rotations: [0] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.2
+        unmatched_threshold : 0.15
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {
+          }
+        }
+      }
+      class_settings: {
+        class_name: "truck"
+        anchor_generator_range: {
+          sizes: [2.8460939, 10.24778078, 3.44004906] # wlh
+          anchor_ranges: [-49.6, -49.6, -0.30, 49.6, 49.6, -0.30]
+          rotations: [0, 1.57] # DON'T modify this unless you are very familiar with my code.
+          # custom_values: [0, 0] # velocity vector base value
+        }
+        matched_threshold : 0.5
+        unmatched_threshold : 0.3
+        use_rotate_nms: false
+        use_multi_class_nms: false
+        nms_pre_max_size: 1000
+        nms_post_max_size: 300
+        nms_score_threshold: 0.05
+        nms_iou_threshold: 0.3
+        region_similarity_calculator: {
+          nearest_iou_similarity: {}
+        }
+      }
+      sample_positive_fraction : -1
+      sample_size : 512
+      assign_per_class: true
+    }
+  }
+}
+
+train_input_reader: {
+  dataset: {
+    dataset_class_name: "LyftDataset"
+    kitti_info_path: "/home/cdahms/LyftObjDetDataset/train/infos_train.pkl"
+    kitti_root_path: "/home/cdahms/LyftObjDetDataset/train"
+  }
+
+  batch_size: 4
+  preprocess: {
+    max_number_of_voxels: 20000
+    shuffle_points: false
+    num_workers: 3
+    groundtruth_localization_noise_std: [0, 0, 0]
+    groundtruth_rotation_uniform_noise: [0, 0]
+    # groundtruth_localization_noise_std: [0.25, 0.25, 0.25]
+    # groundtruth_rotation_uniform_noise: [-0.15707963267, 0.15707963267]
+    global_rotation_uniform_noise: [0, 0]
+    global_scaling_uniform_noise: [0.95, 1.05]
+    global_random_rotation_range_per_object: [0, 0]
+    global_translate_noise_std: [0.2, 0.2, 0.2]
+    anchor_area_threshold: -1
+    remove_points_after_sample: true
+    groundtruth_points_drop_percentage: 0.0
+    groundtruth_drop_max_keep_points: 15
+    remove_unknown_examples: false
+    sample_importance: 1.0
+    random_flip_x: true
+    random_flip_y: true
+    remove_environment: false
+  }
+}
+
+train_config: {
+  optimizer: {
+    adam_optimizer: {
+      learning_rate: {
+        one_cycle: {
+          lr_max: 3e-3
+          moms: [0.95, 0.85]
+          div_factor: 10.0
+          pct_start: 0.4
+        }
+      }
+      weight_decay: 0.01
+    }
+    fixed_weight_decay: true
+    use_moving_average: false
+  }
+  steps: 890670 # 14065 * 20 (28130 // 2 )
+  steps_per_eval: 33445 # 14065 * 2
+  save_checkpoints_secs : 1800 # half hour
+  save_summary_steps : 10
+  enable_mixed_precision: true
+  loss_scale_factor: -1
+  clear_metrics_every_epoch: true
+}
+
+eval_input_reader: {
+  dataset: {
+    dataset_class_name: "LyftDataset"
+    kitti_info_path: "/home/cdahms/LyftObjDetDataset/train/infos_val.pkl"
+    kitti_root_path: "/home/cdahms/LyftObjDetDataset/train"
+  }
+  batch_size: 2
+
+  preprocess: {
+    max_number_of_voxels: 30000
+    shuffle_points: false
+    num_workers: 2
+    anchor_area_threshold: -1
+    remove_environment: false
+  }
+}
+
+
+starting from: 0
+  0%|                                                                                                                           | 0/4630 [00:00<?, ?it/s]runtime.step=1, runtime.steptime=1.29, runtime.voxel_gene_time=0.003562, runtime.prep_time=0.5431, loss.cls_loss=1.815e+03, loss.cls_loss_rt=1.815e+03, loss.loc_loss=4.767, loss.loc_loss_rt=4.767, loss.loc_elem=[0.2587, 0.5363, 0.3287, 0.3072, 0.2766, 0.2392, 0.4369], loss.cls_pos_rt=1.609e+03, loss.cls_neg_rt=206.8, loss.dir_rt=0.752, rpn_acc=0.002166, misc.num_vox=56339, misc.num_pos=32, misc.num_neg=42453, misc.num_anchors=42500, misc.mem_usage=10.0
+ 11%|████████████▏                                                                                                    | 500/4630 [01:43<14:25,  4.77it/s]runtime.step=501, runtime.steptime=0.2042, runtime.voxel_gene_time=0.002436, runtime.prep_time=0.003203, loss.cls_loss=31.99, loss.cls_loss_rt=0.5133, loss.loc_loss=1.361, loss.loc_loss_rt=1.332, loss.loc_elem=[0.08319, 0.06844, 0.1813, 0.05402, 0.05767, 0.08208, 0.1391], loss.cls_pos_rt=0.2205, loss.cls_neg_rt=0.2928, loss.dir_rt=0.7088, rpn_acc=0.992, misc.num_vox=65579, misc.num_pos=9, misc.num_neg=42488, misc.num_anchors=42500, misc.mem_usage=10.2
+ 22%|████████████████████████▏                                                                                       | 1000/4630 [03:26<13:04,  4.63it/s]runtime.step=1001, runtime.steptime=0.2062, runtime.voxel_gene_time=0.002458, runtime.prep_time=0.003218, loss.cls_loss=16.23, loss.cls_loss_rt=0.4399, loss.loc_loss=1.186, loss.loc_loss_rt=0.7519, loss.loc_elem=[0.04568, 0.01221, 0.08513, 0.04403, 0.03399, 0.05613, 0.09877], loss.cls_pos_rt=0.2257, loss.cls_neg_rt=0.2142, loss.dir_rt=0.6661, rpn_acc=0.9957, misc.num_vox=68043, misc.num_pos=3, misc.num_neg=42490, misc.num_anchors=42500, misc.mem_usage=10.2
+ 32%|████████████████████████████████████▎                                                                           | 1500/4630 [05:08<10:36,  4.92it/s]runtime.step=1501, runtime.steptime=0.2036, runtime.voxel_gene_time=0.002436, runtime.prep_time=0.00329, loss.cls_loss=10.96, loss.cls_loss_rt=0.4064, loss.loc_loss=1.09, loss.loc_loss_rt=0.916, loss.loc_elem=[0.05095, 0.02239, 0.09944, 0.02209, 0.1076, 0.05688, 0.09867], loss.cls_pos_rt=0.2064, loss.cls_neg_rt=0.1999, loss.dir_rt=0.6761, rpn_acc=0.997, misc.num_vox=57571, misc.num_pos=36, misc.num_neg=42444, misc.num_anchors=42500, misc.mem_usage=10.2
+ 43%|████████████████████████████████████████████████▍                                                               | 2000/4630 [06:50<09:08,  4.79it/s]runtime.step=2001, runtime.steptime=0.2045, runtime.voxel_gene_time=0.0024, runtime.prep_time=0.003152, loss.cls_loss=8.308, loss.cls_loss_rt=0.3929, loss.loc_loss=1.024, loss.loc_loss_rt=0.7517, loss.loc_elem=[0.03285, 0.03163, 0.06814, 0.02367, 0.0536, 0.04186, 0.1241], loss.cls_pos_rt=0.1766, loss.cls_neg_rt=0.2163, loss.dir_rt=0.7118, rpn_acc=0.9976, misc.num_vox=56415, misc.num_pos=27, misc.num_neg=42457, misc.num_anchors=42500, misc.mem_usage=10.2
+ 54%|████████████████████████████████████████████████████████████▍                                                   | 2500/4630 [08:32<07:11,  4.94it/s]runtime.step=2501, runtime.steptime=0.2045, runtime.voxel_gene_time=0.002354, runtime.prep_time=0.02645, loss.cls_loss=6.712, loss.cls_loss_rt=0.3189, loss.loc_loss=0.9737, loss.loc_loss_rt=0.859, loss.loc_elem=[0.03623, 0.01022, 0.108, 0.03626, 0.07648, 0.06316, 0.09911], loss.cls_pos_rt=0.1418, loss.cls_neg_rt=0.1771, loss.dir_rt=0.6229, rpn_acc=0.998, misc.num_vox=65501, misc.num_pos=30, misc.num_neg=42454, misc.num_anchors=42500, misc.mem_usage=10.2
+ 65%|████████████████████████████████████████████████████████████████████████▌                                       | 3000/4630 [10:14<05:11,  5.23it/s]runtime.step=3001, runtime.steptime=0.2047, runtime.voxel_gene_time=0.003175, runtime.prep_time=0.004196, loss.cls_loss=5.645, loss.cls_loss_rt=0.3447, loss.loc_loss=0.9316, loss.loc_loss_rt=1.16, loss.loc_elem=[0.041, 0.03506, 0.186, 0.0428, 0.02786, 0.07177, 0.1755], loss.cls_pos_rt=0.1097, loss.cls_neg_rt=0.2349, loss.dir_rt=0.4931, rpn_acc=0.9983, misc.num_vox=63365, misc.num_pos=5, misc.num_neg=42492, misc.num_anchors=42500, misc.mem_usage=10.2
+ 76%|████████████████████████████████████████████████████████████████████████████████████▋                           | 3500/4630 [11:57<03:46,  4.98it/s]runtime.step=3501, runtime.steptime=0.2057, runtime.voxel_gene_time=0.002173, runtime.prep_time=0.002935, loss.cls_loss=4.881, loss.cls_loss_rt=0.2308, loss.loc_loss=0.9012, loss.loc_loss_rt=0.5431, loss.loc_elem=[0.02245, 0.01679, 0.07559, 0.02018, 0.02619, 0.04964, 0.0607], loss.cls_pos_rt=0.02844, loss.cls_neg_rt=0.2024, loss.dir_rt=0.4736, rpn_acc=0.9984, misc.num_vox=49879, misc.num_pos=33, misc.num_neg=42459, misc.num_anchors=42500, misc.mem_usage=10.2
+ 86%|████████████████████████████████████████████████████████████████████████████████████████████████▊               | 4000/4630 [13:40<02:15,  4.64it/s]runtime.step=4001, runtime.steptime=0.2048, runtime.voxel_gene_time=0.00219, runtime.prep_time=0.003006, loss.cls_loss=4.308, loss.cls_loss_rt=0.2567, loss.loc_loss=0.8759, loss.loc_loss_rt=0.7101, loss.loc_elem=[0.02742, 0.01938, 0.06787, 0.04748, 0.03923, 0.07016, 0.08353], loss.cls_pos_rt=0.1006, loss.cls_neg_rt=0.1561, loss.dir_rt=0.5012, rpn_acc=0.9986, misc.num_vox=52381, misc.num_pos=24, misc.num_neg=42466, misc.num_anchors=42500, misc.mem_usage=10.2
+ 97%|████████████████████████████████████████████████████████████████████████████████████████████████████████████▊   | 4500/4630 [15:23<00:26,  4.94it/s]runtime.step=4501, runtime.steptime=0.2064, runtime.voxel_gene_time=0.002169, runtime.prep_time=0.003013, loss.cls_loss=3.859, loss.cls_loss_rt=0.3786, loss.loc_loss=0.8499, loss.loc_loss_rt=1.4, loss.loc_elem=[0.1232, 0.05519, 0.1407, 0.04645, 0.03535, 0.06646, 0.2328], loss.cls_pos_rt=0.2477, loss.cls_neg_rt=0.131, loss.dir_rt=0.462, rpn_acc=0.9987, misc.num_vox=60311, misc.num_pos=24, misc.num_neg=42464, misc.num_anchors=42500, misc.mem_usage=10.2
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4630/4630 [15:50<00:00,  4.87it/s]
+  0%|                                                                                                                           | 0/4630 [00:00<?, ?it/s]runtime.step=4631, runtime.steptime=0.2073, runtime.voxel_gene_time=0.002192, runtime.prep_time=0.002966, loss.cls_loss=0.231, loss.cls_loss_rt=0.231, loss.loc_loss=0.4612, loss.loc_loss_rt=0.4612, loss.loc_elem=[0.02285, 0.01635, 0.05284, 0.03208, 0.04854, 0.02815, 0.0298], loss.cls_pos_rt=0.08732, loss.cls_neg_rt=0.1436, loss.dir_rt=0.4269, rpn_acc=0.9997, misc.num_vox=62967, misc.num_pos=47, misc.num_neg=42433, misc.num_anchors=42500, misc.mem_usage=10.3
+ 11%|████████████▏                                                                                                    | 500/4630 [01:43<14:43,  4.68it/s]runtime.step=5131, runtime.steptime=0.2067, runtime.voxel_gene_time=0.002376, runtime.prep_time=0.003261, loss.cls_loss=0.257, loss.cls_loss_rt=0.2578, loss.loc_loss=0.6445, loss.loc_loss_rt=0.7423, loss.loc_elem=[0.02984, 0.02348, 0.0468, 0.0904, 0.03539, 0.04607, 0.09917], loss.cls_pos_rt=0.1142, loss.cls_neg_rt=0.1436, loss.dir_rt=0.5723, rpn_acc=0.9996, misc.num_vox=51869, misc.num_pos=29, misc.num_neg=42461, misc.num_anchors=42500, misc.mem_usage=10.3
+ 22%|████████████████████████▏                                                                                       | 1000/4630 [03:26<12:22,  4.89it/s]runtime.step=5631, runtime.steptime=0.2063, runtime.voxel_gene_time=0.002296, runtime.prep_time=0.003133, loss.cls_loss=0.256, loss.cls_loss_rt=0.2244, loss.loc_loss=0.6242, loss.loc_loss_rt=0.5632, loss.loc_elem=[0.01224, 0.0256, 0.06768, 0.03353, 0.03428, 0.04953, 0.05873], loss.cls_pos_rt=0.07427, loss.cls_neg_rt=0.1502, loss.dir_rt=0.4875, rpn_acc=0.9996, misc.num_vox=67981, misc.num_pos=23, misc.num_neg=42465, misc.num_anchors=42500, misc.mem_usage=10.3
+ 32%|████████████████████████████████████▎                                                                           | 1500/4630 [05:10<10:55,  4.78it/s]runtime.step=6131, runtime.steptime=0.207, runtime.voxel_gene_time=0.002105, runtime.prep_time=0.002869, loss.cls_loss=0.2544, loss.cls_loss_rt=0.3045, loss.loc_loss=0.6114, loss.loc_loss_rt=0.4383, loss.loc_elem=[0.02669, 0.01398, 0.0461, 0.02279, 0.0244, 0.0499, 0.0353], loss.cls_pos_rt=0.08099, loss.cls_neg_rt=0.2235, loss.dir_rt=0.3923, rpn_acc=0.9996, misc.num_vox=68075, misc.num_pos=50, misc.num_neg=42426, misc.num_anchors=42500, misc.mem_usage=10.3
+ 43%|████████████████████████████████████████████████▍                                                               | 2000/4630 [06:53<09:10,  4.78it/s]runtime.step=6631, runtime.steptime=0.2077, runtime.voxel_gene_time=0.002593, runtime.prep_time=0.003381, loss.cls_loss=0.2524, loss.cls_loss_rt=0.206, loss.loc_loss=0.6015, loss.loc_loss_rt=0.4183, loss.loc_elem=[0.009769, 0.01211, 0.05976, 0.01888, 0.03107, 0.0377, 0.03985], loss.cls_pos_rt=0.06394, loss.cls_neg_rt=0.1421, loss.dir_rt=0.4924, rpn_acc=0.9996, misc.num_vox=63115, misc.num_pos=28, misc.num_neg=42461, misc.num_anchors=42500, misc.mem_usage=10.3
+ 54%|████████████████████████████████████████████████████████████▍                                                   | 2500/4630 [08:36<06:59,  5.08it/s]runtime.step=7131, runtime.steptime=0.2056, runtime.voxel_gene_time=0.002321, runtime.prep_time=0.003159, loss.cls_loss=0.2496, loss.cls_loss_rt=0.1463, loss.loc_loss=0.5941, loss.loc_loss_rt=0.4354, loss.loc_elem=[0.01714, 0.01107, 0.04892, 0.02969, 0.05229, 0.03422, 0.02438], loss.cls_pos_rt=0.1023, loss.cls_neg_rt=0.04405, loss.dir_rt=0.2862, rpn_acc=0.9996, misc.num_vox=56398, misc.num_pos=16, misc.num_neg=42471, misc.num_anchors=42500, misc.mem_usage=10.6
+ 65%|████████████████████████████████████████████████████████████████████████▌                                       | 3000/4630 [10:20<05:44,  4.74it/s]runtime.step=7631, runtime.steptime=0.207, runtime.voxel_gene_time=0.002158, runtime.prep_time=0.003006, loss.cls_loss=0.2471, loss.cls_loss_rt=0.2286, loss.loc_loss=0.5867, loss.loc_loss_rt=0.4979, loss.loc_elem=[0.02433, 0.01324, 0.04923, 0.0306, 0.03292, 0.05011, 0.04853], loss.cls_pos_rt=0.09169, loss.cls_neg_rt=0.1369, loss.dir_rt=0.3267, rpn_acc=0.9996, misc.num_vox=47346, misc.num_pos=41, misc.num_neg=42441, misc.num_anchors=42500, misc.mem_usage=10.3
+ 76%|████████████████████████████████████████████████████████████████████████████████████▋                           | 3500/4630 [12:03<03:40,  5.13it/s]runtime.step=8131, runtime.steptime=0.2064, runtime.voxel_gene_time=0.002443, runtime.prep_time=0.003198, loss.cls_loss=0.2444, loss.cls_loss_rt=0.1602, loss.loc_loss=0.58, loss.loc_loss_rt=0.3596, loss.loc_elem=[0.01394, 0.007001, 0.0624, 0.01839, 0.03433, 0.01878, 0.02494], loss.cls_pos_rt=0.04554, loss.cls_neg_rt=0.1147, loss.dir_rt=0.2198, rpn_acc=0.9996, misc.num_vox=51177, misc.num_pos=1, misc.num_neg=42499, misc.num_anchors=42500, misc.mem_usage=10.6
+ 86%|████████████████████████████████████████████████████████████████████████████████████████████████▊               | 4000/4630 [13:46<01:57,  5.36it/s]runtime.step=8631, runtime.steptime=0.2066, runtime.voxel_gene_time=0.002472, runtime.prep_time=0.003199, loss.cls_loss=0.2422, loss.cls_loss_rt=0.2235, loss.loc_loss=0.5753, loss.loc_loss_rt=0.5385, loss.loc_elem=[0.04498, 0.06472, 0.06341, 0.01788, 0.02292, 0.02135, 0.03398], loss.cls_pos_rt=0.08272, loss.cls_neg_rt=0.1408, loss.dir_rt=0.3568, rpn_acc=0.9996, misc.num_vox=67348, misc.num_pos=1, misc.num_neg=42499, misc.num_anchors=42500, misc.mem_usage=10.3
+ 97%|████████████████████████████████████████████████████████████████████████████████████████████████████████████▊   | 4500/4630 [15:29<00:28,  4.61it/s]runtime.step=9131, runtime.steptime=0.2059, runtime.voxel_gene_time=0.003045, runtime.prep_time=0.004216, loss.cls_loss=0.2401, loss.cls_loss_rt=0.1594, loss.loc_loss=0.5698, loss.loc_loss_rt=0.3696, loss.loc_elem=[0.02043, 0.004019, 0.04991, 0.0291, 0.03266, 0.03804, 0.01067], loss.cls_pos_rt=0.07201, loss.cls_neg_rt=0.08742, loss.dir_rt=0.3197, rpn_acc=0.9996, misc.num_vox=58044, misc.num_pos=29, misc.num_neg=42456, misc.num_anchors=42500, misc.mem_usage=10.6
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4630/4630 [15:57<00:00,  4.84it/s]
+#################################
+# EVAL
+#################################
+Generate output labels...
+generating eval detections
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2079/2079 [01:31<00:00, 22.73it/s]
+starting evaluation on predictions . . .
+Preparing pred_data dict ..
+Saving predictions at /home/cdahms/workspace-av/lyft-3d-det/results/step_9260/pred_data_val.json
+calling my_lyft_eval.eval_main
+Traceback (most recent call last):
+  File "2_train.py", line 586, in <module>
+    main()
+  File "2_train.py", line 360, in main
+    evalDataset.evaluation_lyft(detections, str(result_path_step))
+  File "/home/cdahms/workspace-av/lyft-3d-det/data/my_lyft_dataset.py", line 372, in evaluation_lyft
+    my_lyft_eval.eval_main(gt_file_path, pred_file_path, output_dir)
+  File "/home/cdahms/workspace-av/lyft-3d-det/data/my_lyft_eval.py", line 55, in eval_main
+    with open(str(gt_path)) as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/cdahms/LyftObjDetDataset/train/gt_data_val.json'
+
+
+
+
+
+
+
