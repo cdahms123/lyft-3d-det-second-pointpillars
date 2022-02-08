@@ -1,4 +1,4 @@
-### lyft-3d-det
+### lyft-3d-det-second-pointpillars
 
 ### references / citations
 
