@@ -44,8 +44,6 @@ def main():
     print('press [Enter] to show next frame, or Ctrl + \ to end program')
 
     for idx, row in valPredsDataFrame.iterrows():
-        # idx = 0  # change this to visualize other samples
-
         # get the frame ID for the current frame
         frameId = valPredsDataFrame.iloc[idx]['Id']
         # get the pred boxes for the current frame
