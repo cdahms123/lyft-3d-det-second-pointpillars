@@ -30,7 +30,7 @@ def main():
 
     print(valPredsDataFrame)
 
-    # load test data
+    # load training data
     print('\n' + 'loading train data (note this also includes the val split) . . . ' + '\n')
     level5data = LyftDataset(data_path=TRAIN_DATA_ROOT_PATH, json_path=os.path.join(TRAIN_DATA_ROOT_PATH, 'data'))
 
