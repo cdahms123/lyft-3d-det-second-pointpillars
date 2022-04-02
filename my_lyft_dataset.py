@@ -193,7 +193,6 @@ class MyLyftDataset(Dataset):
         unmatched_thresholds = self._anchor_cache['unmatched_thresholds']
 
         itemDict['anchors'] = anchors
-        anchors_mask = None
 
         metrics['prep_time'] = time.time() - t
         itemDict['metadata'] = { 'token': lyftInfoDict['token'] }
@@ -282,7 +281,7 @@ class MyLyftDataset(Dataset):
                 anchors,
                 anchors_dict,
                 gt_dict['gt_boxes'],
-                anchors_mask,
+                anchors_mask=None,
                 gt_classes=gt_dict['gt_classes'],
                 gt_names=gt_dict['gt_names'],
                 matched_thresholds=matched_thresholds,
