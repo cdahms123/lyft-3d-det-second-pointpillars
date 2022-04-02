@@ -103,14 +103,6 @@ class MyLyftDataset(Dataset):
 
         lyftInfoDict = self.getLyftInfoDict(frameId)
 
-        # frameInfoDict = self.getFrameInfoDict(lyftInfoDict)
-        #
-        # if frameInfoDict is None:
-        #     return None
-        # # end if
-        #
-        # itemDict = self.getItemDict(frameInfoDict)
-
         itemDict = self.getItemDict(lyftInfoDict)
 
         return itemDict
@@ -120,22 +112,18 @@ class MyLyftDataset(Dataset):
         sample = self.lyft.get('sample', frameId)
 
         lidar_token = sample['data']['LIDAR_TOP']
-        # cam_front_token = sample['data']['CAM_FRONT']
         sample_data_record = self.lyft.get('sample_data', sample['data']['LIDAR_TOP'])
         cal_sensor_record = self.lyft.get('calibrated_sensor', sample_data_record['calibrated_sensor_token'])
         pose_record = self.lyft.get('ego_pose', sample_data_record['ego_pose_token'])
         lidar_path, boxes, _ = self.lyft.get_sample_data(lidar_token)
-        # cam_path, _, cam_intrinsic = self.lyft.get_sample_data(cam_front_token)
 
         lyftInfoDict = {
             'lidar_path': lidar_path,
-            # 'cam_front_path': cam_path,
             'token': sample['token'],
             'lidar2ego_rotation': cal_sensor_record['rotation'],
             'lidar2ego_translation': cal_sensor_record['translation'],
             'ego2global_rotation': pose_record['rotation'],
             'ego2global_translation': pose_record['translation']
-            # 'timestamp': sample['timestamp']
         }
 
         # if in training mode, prep the ground truth data and add to lyftInfoDict
@@ -162,46 +150,6 @@ class MyLyftDataset(Dataset):
         return lyftInfoDict
     # end function
 
-    def getFrameInfoDict(self, lyftInfoDict: Dict):
-
-        frameInfoDict = {
-            'lidar': {
-                'type': 'lidar',
-                'points': None
-            },
-            'metadata': {
-                'token': lyftInfoDict['token']
-            },
-        }
-
-        # there is a bad data point in the Lyft dataset, file name host-a011_lidar1_1233090652702363606.bin,
-        # sample_data_token 25cca7dd22b1f0a2c7664ddfa285694193a80d033896d4df70cb0e29a3d466e2, which will cause a crash
-        # when read in when reshaped to (-1, 5), so when this data point is encountered return None
-        lidarFileName = str(lyftInfoDict['lidar_path']).split('/')[-1]
-        if lidarFileName == 'host-a011_lidar1_1233090652702363606.bin':
-            return None
-        # end if
-
-        lidarPointCloud: LidarPointCloud = LidarPointCloud.from_file(lyftInfoDict['lidar_path'])
-        points = lidarPointCloud.points.transpose()
-        points[: 3] = 0
-
-        # noinspection PyTypedDict
-        frameInfoDict['lidar']['points'] = points
-
-        if 'gt_boxes' in lyftInfoDict:
-            mask = lyftInfoDict['num_lidar_pts'] > 0
-            gt_boxes = lyftInfoDict['gt_boxes'][mask]
-            frameInfoDict['lidar']['annotations'] = {
-                'boxes': gt_boxes,
-                'names': lyftInfoDict['gt_names'][mask]
-                }
-        # end if
-
-        return frameInfoDict
-    # end function
-
-    # def getItemDict(self, frameInfoDict: Dict) -> Dict:
     def getItemDict(self, lyftInfoDict: Dict) -> Union[Dict, None]:
 
         # there is a bad data point in the Lyft dataset, file name host-a011_lidar1_1233090652702363606.bin,
@@ -216,84 +164,11 @@ class MyLyftDataset(Dataset):
         points = lidarPointCloud.points.transpose()
         points[: 3] = 0
 
-        frameInfoDictMetadata =  { 'token': lyftInfoDict['token'] }
-
-
-
-        ###################################################
+        # frameInfoDictMetadata =  { 'token': lyftInfoDict['token'] }
 
         t = time.time()
 
         class_names = self._target_assigner.classes
-        # points = frameInfoDict['lidar']['points']
-
-        # if self._training:
-        #     anno_dict = frameInfoDict['lidar']['annotations']
-        #     gt_dict = {
-        #         'gt_boxes': anno_dict['boxes'],
-        #         'gt_names': anno_dict['names'],
-        #         'gt_importance': np.ones([anno_dict['boxes'].shape[0]], dtype=anno_dict['boxes'].dtype),
-        #     }
-        #
-        #     if 'difficulty' not in anno_dict:
-        #         difficulty = np.zeros([anno_dict['boxes'].shape[0]], dtype=np.int32)
-        #         gt_dict['difficulty'] = difficulty
-        #     else:
-        #         gt_dict['difficulty'] = anno_dict['difficulty']
-        #     # end if
-        #
-        #     if self._use_group_id and 'group_ids' in anno_dict:
-        #         group_ids = anno_dict['group_ids']
-        #         gt_dict['group_ids'] = group_ids
-        #     # end if
-        #
-        #     selected = self.drop_arrays_by_name(gt_dict['gt_names'], ['DontCare'])
-        #     self._dict_select(gt_dict, selected)
-        #     if self._remove_unknown:
-        #         remove_mask = gt_dict['difficulty'] == -1
-        #         keep_mask = np.logical_not(remove_mask)
-        #         self._dict_select(gt_dict, keep_mask)
-        #     gt_dict.pop('difficulty')
-        #     if self._min_points_in_gt > 0:
-        #         point_counts = box_np_ops.points_count_rbbox(points, gt_dict['gt_boxes'])
-        #         mask = point_counts >= self._min_points_in_gt
-        #         self._dict_select(gt_dict, mask)
-        #     gt_boxes_mask = np.array([n in class_names for n in gt_dict['gt_names']], dtype=np.bool_)
-        #
-        #     group_ids = None
-        #     if 'group_ids' in gt_dict:
-        #         group_ids = gt_dict['group_ids']
-        #     # end if
-        #
-        #     prep.noise_per_object_v3_(
-        #         gt_dict['gt_boxes'],
-        #         points,
-        #         gt_boxes_mask,
-        #         rotation_perturb=self._gt_rotation_noise,
-        #         center_noise_std=self._gt_loc_noise_std,
-        #         global_random_rot_range=self._global_random_rot_range,
-        #         group_ids=group_ids,
-        #         num_try=100)
-        #
-        #     self._dict_select(gt_dict, gt_boxes_mask)
-        #     gt_classes = np.array(
-        #         [class_names.index(n) + 1 for n in gt_dict['gt_names']],
-        #         dtype=np.int32)
-        #     gt_dict['gt_classes'] = gt_classes
-        #     gt_dict['gt_boxes'], points = prep.random_flip(gt_dict['gt_boxes'],
-        #                                                    points, 0.5, self._random_flip_x, self._random_flip_y)
-        #     gt_dict['gt_boxes'], points = prep.global_rotation_v2(
-        #         gt_dict['gt_boxes'], points, *self._global_rotation_noise)
-        #     gt_dict['gt_boxes'], points = prep.global_scaling_v2(
-        #         gt_dict['gt_boxes'], points, *self._global_scaling_noise)
-        #     prep.global_translate_(gt_dict['gt_boxes'], points, self._global_translate_noise_std)
-        #     bv_range = self._voxel_generator.point_cloud_range[[0, 1, 3, 4]]
-        #     mask = prep.filter_gt_box_outside_range_by_center(gt_dict['gt_boxes'], bv_range)
-        #     self._dict_select(gt_dict, mask)
-        #
-        #     # limit rad to [-pi, pi]
-        #     gt_dict['gt_boxes'][:, 6] = box_np_ops.limit_period(gt_dict['gt_boxes'][:, 6], offset=0.5, period=2 * np.pi)
-        # # end if
 
         t1 = time.time()
         res = self._voxel_generator.generate(points, self._max_voxels)
@@ -321,27 +196,32 @@ class MyLyftDataset(Dataset):
         anchors_mask = None
 
         metrics['prep_time'] = time.time() - t
-        # itemDict['metadata'] = frameInfoDict['metadata']
-        itemDict['metadata'] = frameInfoDictMetadata
+        itemDict['metadata'] = { 'token': lyftInfoDict['token'] }
+        # itemDict['metadata']['token'] = lyftInfoDict['token']
 
-        # if in test mode (no ground truths) we're done !!
+        # if in val or test mode we're done !!
         if not self._training:
             return itemDict
         else:
             mask = lyftInfoDict['num_lidar_pts'] > 0
             gt_boxes = lyftInfoDict['gt_boxes'][mask]
-            frameInfoDictLidarAnnotations = {
+
+            # frameInfoDictLidarAnnotations = {
+            #     'boxes': gt_boxes,
+            #     'names': lyftInfoDict['gt_names'][mask]
+            # }
+            #
+            # anno_dict = frameInfoDictLidarAnnotations
+
+            anno_dict = {
                 'boxes': gt_boxes,
                 'names': lyftInfoDict['gt_names'][mask]
             }
 
-            # anno_dict = frameInfoDict['lidar']['annotations']
-            anno_dict = frameInfoDictLidarAnnotations
-
             gt_dict = {
                 'gt_boxes': anno_dict['boxes'],
                 'gt_names': anno_dict['names'],
-                'gt_importance': np.ones([anno_dict['boxes'].shape[0]], dtype=anno_dict['boxes'].dtype),
+                'gt_importance': np.ones([anno_dict['boxes'].shape[0]], dtype=anno_dict['boxes'].dtype)
             }
 
             if 'difficulty' not in anno_dict:
@@ -402,7 +282,6 @@ class MyLyftDataset(Dataset):
 
             # limit rad to [-pi, pi]
             gt_dict['gt_boxes'][:, 6] = box_np_ops.limit_period(gt_dict['gt_boxes'][:, 6], offset=0.5, period=2 * np.pi)
-
 
             # noinspection PyUnboundLocalVariable
             itemDict['gt_names'] = gt_dict['gt_names']
