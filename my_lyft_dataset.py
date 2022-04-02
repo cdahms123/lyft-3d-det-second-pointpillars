@@ -197,7 +197,6 @@ class MyLyftDataset(Dataset):
 
         metrics['prep_time'] = time.time() - t
         itemDict['metadata'] = { 'token': lyftInfoDict['token'] }
-        # itemDict['metadata']['token'] = lyftInfoDict['token']
 
         # if in val or test mode we're done !!
         if not self._training:
@@ -205,13 +204,6 @@ class MyLyftDataset(Dataset):
         else:
             mask = lyftInfoDict['num_lidar_pts'] > 0
             gt_boxes = lyftInfoDict['gt_boxes'][mask]
-
-            # frameInfoDictLidarAnnotations = {
-            #     'boxes': gt_boxes,
-            #     'names': lyftInfoDict['gt_names'][mask]
-            # }
-            #
-            # anno_dict = frameInfoDictLidarAnnotations
 
             anno_dict = {
                 'boxes': gt_boxes,
