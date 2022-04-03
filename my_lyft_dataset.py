@@ -128,23 +128,46 @@ class MyLyftDataset(Dataset):
 
         # if in training mode, prep the ground truth data and add to lyftInfoDict
         if self._training:
-            annotations = []
-            for annToken in sample['anns']:
-                annotation = self.lyft.get('sample_annotation', annToken)
-                annotations.append(annotation)
-            # end for
+            # annotations = []
+            # for annToken in sample['anns']:
+            #     annotation = self.lyft.get('sample_annotation', annToken)
+            #     annotations.append(annotation)
+            # # end for
 
-            locs = np.array([b.center for b in boxes]).reshape(-1, 3)
-            dims = np.array([b.wlh for b in boxes]).reshape(-1, 3)
-            rots = np.array([b.orientation.yaw_pitch_roll[0] for b in boxes]).reshape(-1, 1)
+            # locs = np.array([b.center for b in boxes]).reshape(-1, 3)
+
+            locs = []
+            for box in boxes:
+                locs.append(box.center)
+            # end for
+            locs = np.array(locs).reshape(-1, 3)
+
+
+            # dims = np.array([b.wlh for b in boxes]).reshape(-1, 3)
+
+            dims = []
+            for box in boxes:
+                dims.append(box.wlh)
+            # end for
+            dims = np.array(dims).reshape(-1, 3)
+
+            # rots = np.array([b.orientation.yaw_pitch_roll[0] for b in boxes]).reshape(-1, 1)
+
+            rots = []
+            for box in boxes:
+                rots.append(box.orientation.yaw_pitch_roll[0])
+            # end for
+            rots = np.array(rots).reshape(-1, 1)
 
             names = [b.name for b in boxes]
             names = np.array(names)
             gt_boxes = np.concatenate([locs, dims, -rots - np.pi / 2], axis=1)
-            assert len(gt_boxes) == len(annotations),'len(gt_boxes = ' + str(len(gt_boxes)) + ', len(annotations) = ' + str(len(annotations))
+
+            # assert len(gt_boxes) == len(annotations),'len(gt_boxes = ' + str(len(gt_boxes)) + ', len(annotations) = ' + str(len(annotations))
+
             lyftInfoDict['gt_boxes'] = gt_boxes
             lyftInfoDict['gt_names'] = names
-            lyftInfoDict['num_lidar_pts'] = np.array([1 for ann in annotations])
+            lyftInfoDict['num_lidar_pts'] = np.array([1 for box in boxes])
         # end if
 
         return lyftInfoDict
