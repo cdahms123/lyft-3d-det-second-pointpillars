@@ -5,6 +5,7 @@ from lyft_dataset_sdk.utils.data_classes import LidarPointCloud, Box
 from lyft_dataset_sdk.eval.detection.mAP_evaluation import recall_precision
 
 import os
+import pathlib
 import numpy as np
 import json
 import time
@@ -109,17 +110,32 @@ class MyLyftDataset(Dataset):
     # end function
 
     def getLyftInfoDict(self, frameId: str) -> Dict:
-        sample = self.lyft.get('sample', frameId)
+        sampleData = self.lyft.get('sample', frameId)
 
-        lidar_token = sample['data']['LIDAR_TOP']
-        sample_data_record = self.lyft.get('sample_data', sample['data']['LIDAR_TOP'])
+        lidarTopId: str = sampleData['data']['LIDAR_TOP']
+
+        sample_data_record = self.lyft.get('sample_data', sampleData['data']['LIDAR_TOP'])
         cal_sensor_record = self.lyft.get('calibrated_sensor', sample_data_record['calibrated_sensor_token'])
         pose_record = self.lyft.get('ego_pose', sample_data_record['ego_pose_token'])
-        lidar_path, boxes, _ = self.lyft.get_sample_data(lidar_token)
+
+        # lidar_path, boxes, _ = self.lyft.get_sample_data(lidarTopId)
+
+        lidar_path: pathlib.Path = self.lyft.get_sample_data_path(lidarTopId)
+        boxes: List[Box] = self.lyft.get_boxes(lidarTopId)
+
+        for i in range(len(boxes)):
+            # move box to ego vehicle coord system
+            boxes[i].translate(-np.array(pose_record["translation"]))
+            boxes[i].rotate(pyquaternion.Quaternion(pose_record["rotation"]).inverse)
+
+            # move box to sensor coord system
+            boxes[i].translate(-np.array(cal_sensor_record["translation"]))
+            boxes[i].rotate(pyquaternion.Quaternion(cal_sensor_record["rotation"]).inverse)
+        # end for
 
         lyftInfoDict = {
             'lidar_path': lidar_path,
-            'token': sample['token'],
+            'token': frameId,
             'lidar2ego_rotation': cal_sensor_record['rotation'],
             'lidar2ego_translation': cal_sensor_record['translation'],
             'ego2global_rotation': pose_record['rotation'],
@@ -128,30 +144,17 @@ class MyLyftDataset(Dataset):
 
         # if in training mode, prep the ground truth data and add to lyftInfoDict
         if self._training:
-            # annotations = []
-            # for annToken in sample['anns']:
-            #     annotation = self.lyft.get('sample_annotation', annToken)
-            #     annotations.append(annotation)
-            # # end for
-
-            # locs = np.array([b.center for b in boxes]).reshape(-1, 3)
-
             locs = []
             for box in boxes:
                 locs.append(box.center)
             # end for
             locs = np.array(locs).reshape(-1, 3)
 
-
-            # dims = np.array([b.wlh for b in boxes]).reshape(-1, 3)
-
             dims = []
             for box in boxes:
                 dims.append(box.wlh)
             # end for
             dims = np.array(dims).reshape(-1, 3)
-
-            # rots = np.array([b.orientation.yaw_pitch_roll[0] for b in boxes]).reshape(-1, 1)
 
             rots = []
             for box in boxes:
@@ -163,10 +166,10 @@ class MyLyftDataset(Dataset):
             names = np.array(names)
             gt_boxes = np.concatenate([locs, dims, -rots - np.pi / 2], axis=1)
 
-            # assert len(gt_boxes) == len(annotations),'len(gt_boxes = ' + str(len(gt_boxes)) + ', len(annotations) = ' + str(len(annotations))
-
             lyftInfoDict['gt_boxes'] = gt_boxes
             lyftInfoDict['gt_names'] = names
+
+            # ToDo: need to refactor this key num_lidar_pts, does not seem to be the number of lidar points at all !!
             lyftInfoDict['num_lidar_pts'] = np.array([1 for box in boxes])
         # end if
 
