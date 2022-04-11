@@ -357,6 +357,9 @@ def main():
                 for th, ap_metric in summary.items():
                     model_logging.log_text('\n' + 'threshold: ' + str(th), global_step)
                     model_logging.log_text(json.dumps(ap_metric, indent=2), global_step)
+
+                    if th < 0.022:
+                        print(termcolor.colored('\n' + 'warning, mAP is below an acceptable level, result is suspect' + '\n', 'red'))
                 # end for
             # end with
 

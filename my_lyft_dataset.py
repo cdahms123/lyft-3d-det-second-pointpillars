@@ -104,13 +104,9 @@ class MyLyftDataset(Dataset):
 
         lyftInfoDict = self.getLyftInfoDict(frameId)
 
-        frameInfoDict = self.getFrameInfoDict(lyftInfoDict)
 
-        if frameInfoDict is None:
-            return None
-        # end if
 
-        itemDict = self.getItemDict(frameInfoDict)
+        itemDict = self.getItemDict(lyftInfoDict)
 
         return itemDict
     # end function
@@ -161,7 +157,7 @@ class MyLyftDataset(Dataset):
         return lyftInfoDict
     # end function
 
-    def getFrameInfoDict(self, lyftInfoDict: Dict):
+    def getItemDict(self, lyftInfoDict: Dict) -> Union[Dict, None]:
 
         frameInfoDict = {
             'lidar': {
@@ -194,13 +190,9 @@ class MyLyftDataset(Dataset):
             frameInfoDict['lidar']['annotations'] = {
                 'boxes': gt_boxes,
                 'names': lyftInfoDict['gt_names'][mask]
-                }
+            }
         # end if
 
-        return frameInfoDict
-    # end function
-
-    def getItemDict(self, frameInfoDict: Dict) -> Dict:
         t = time.time()
 
         class_names = self._target_assigner.classes
