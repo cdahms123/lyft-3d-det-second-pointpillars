@@ -62,6 +62,8 @@ TEST_BATCH_SIZE = 2
 PRED_THRESHOLD = 0.2
 
 def main():
+    np.set_printoptions(suppress=True)
+
     # check GPU availability
     if torch.cuda.is_available():
         device = 'cuda'

@@ -786,9 +786,7 @@ def global_rotation_v2(gt_boxes, points, min_rad=-np.pi / 4,
         # rotate velo vector
         rot_cos = np.cos(noise_rotation)
         rot_sin = np.sin(noise_rotation)
-        rot_mat_T = np.array(
-            [[rot_cos, -rot_sin], [rot_sin, rot_cos]],
-            dtype=points.dtype)
+        rot_mat_T = np.array([[rot_cos, -rot_sin], [rot_sin, rot_cos]], dtype=points.dtype)
 
         gt_boxes[:, 7:9] = gt_boxes[:, 7:9] @ rot_mat_T
 
