@@ -113,10 +113,12 @@ class MyLyftDataset(Dataset):
         sampleData = self.lyft.get('sample', frameId)
 
         lidarTopId: str = sampleData['data']['LIDAR_TOP']
+
+        lidar_path: pathlib.Path = self.lyft.get_sample_data_path(lidarTopId)
+
         sample_data_record = self.lyft.get('sample_data', sampleData['data']['LIDAR_TOP'])
         cal_sensor_record = self.lyft.get('calibrated_sensor', sample_data_record['calibrated_sensor_token'])
         pose_record = self.lyft.get('ego_pose', sample_data_record['ego_pose_token'])
-        lidar_path, boxes, _ = self.lyft.get_sample_data(lidarTopId)
 
         lyftInfoDict = {
             'token': frameId,
@@ -129,23 +131,53 @@ class MyLyftDataset(Dataset):
 
         # if in training mode, prep the ground truth data and add to lyftInfoDict
         if self._training:
-            annotations = []
-            for annToken in sampleData['anns']:
-                annotation = self.lyft.get('sample_annotation', annToken)
-                annotations.append(annotation)
+            boxes: List[Box] = self.lyft.get_boxes(lidarTopId)
+            for i in range(len(boxes)):
+                # move box to ego vehicle coord system
+                boxes[i].translate(-np.array(pose_record["translation"]))
+                boxes[i].rotate(pyquaternion.Quaternion(pose_record["rotation"]).inverse)
+
+                # move box to sensor coord system
+                boxes[i].translate(-np.array(cal_sensor_record["translation"]))
+                boxes[i].rotate(pyquaternion.Quaternion(cal_sensor_record["rotation"]).inverse)
             # end for
 
-            locs = np.array([b.center for b in boxes]).reshape(-1, 3)
-            dims = np.array([b.wlh for b in boxes]).reshape(-1, 3)
-            rots = np.array([b.orientation.yaw_pitch_roll[0] for b in boxes]).reshape(-1, 1)
+            locs = []
+            for box in boxes:
+                locs.append(box.center)
+            # end for
+            # locs = np.array(locs).reshape(-1, 3)
+            locs = np.array(locs, np.float64)
+            # locs should be n rows x 3 cols, n rows is number of boxes in the frame, cols are x, y, z
+            assert locs.shape[1] == 3, 'error, locs.shape[1] = ' + str(locs.shape[1]) + ', should be 3'
+
+            dims = []
+            for box in boxes:
+                dims.append(box.wlh)
+            # end for
+            # dims = np.array(dims).reshape(-1, 3)
+            dims = np.array(dims, np.float64)
+            # dims should be n rows x 3 cols, n rows is number of boxes in the frame, cols are w, l, h
+            assert dims.shape[1] == 3, 'error, dims.shape[1] = ' + str(dims.shape[1]) + ', should be 3'
+
+            yaws = []
+            for box in boxes:
+                yaws.append(box.orientation.yaw_pitch_roll[0])
+            # end for
+            yaws = np.array(yaws).reshape(-1, 1)
+            # yaws should be n rows x 1 col, n rows is the number of boxes in the frame, col is yaw angle
+            assert yaws.shape[1] == 1, 'error, yaws.shape[1] = ' + str(yaws.shape[1]) + ', should be 1'
 
             names = [b.name for b in boxes]
             names = np.array(names)
-            gt_boxes = np.concatenate([locs, dims, -rots - np.pi / 2], axis=1)
-            assert len(gt_boxes) == len(annotations),'len(gt_boxes = ' + str(len(gt_boxes)) + ', len(annotations) = ' + str(len(annotations))
+            gt_boxes = np.concatenate([locs, dims, -yaws - np.pi / 2], axis=1)
+            # gt_boxes should be n rows x 1 col, n rows is the number of boxes in the frame, cols are x, y, z, w, l, h, yaw
+            assert gt_boxes.shape[1] == 7, 'error, gt_boxes.shape[1] = ' + str(gt_boxes.shape[1]) + ', should be 7'
+
             lyftInfoDict['gt_boxes'] = gt_boxes
             lyftInfoDict['gt_names'] = names
-            lyftInfoDict['num_lidar_pts'] = np.array([1 for ann in annotations])
+
+            lyftInfoDict['boxes_as_1s'] = np.array([1 for box in boxes])
         # end if
 
         return lyftInfoDict
@@ -171,7 +203,7 @@ class MyLyftDataset(Dataset):
         frameInfoDictLidarPoints = points
 
         if 'gt_boxes' in lyftInfoDict:
-            mask = lyftInfoDict['num_lidar_pts'] > 0
+            mask = lyftInfoDict['boxes_as_1s'] > 0
             gt_boxes = lyftInfoDict['gt_boxes'][mask]
             frameInfoDictLidarAnnotations = { 'boxes': gt_boxes,
                                               'names': lyftInfoDict['gt_names'][mask] }
