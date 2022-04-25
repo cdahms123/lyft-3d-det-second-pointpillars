@@ -354,12 +354,24 @@ def main():
                     summary = json.load(f)
                 # end with
 
-                for th, ap_metric in summary.items():
-                    model_logging.log_text('\n' + 'threshold: ' + str(th), global_step)
-                    model_logging.log_text(json.dumps(ap_metric, indent=2), global_step)
+                for threshold, ap_metrics in summary.items():
+                    model_logging.log_text('\n' + 'threshold: ' + str(threshold), global_step)
+                    model_logging.log_text(json.dumps(ap_metrics, indent=2), global_step)
 
-                    if th < 0.022:
-                        print(termcolor.colored('\n' + 'warning, mAP is below an acceptable level, result is suspect' + '\n', 'red'))
+                    if threshold == 'overall':
+                        print('type(ap_metrics): ')
+                        print(type(ap_metrics))
+                        print('ap_metrics: ')
+                        print(ap_metrics)
+
+                        overallCarAp = float(ap_metrics['car'])
+
+                        if overallCarAp > 0.2:
+                            print(termcolor.colored('\n' + 'overall car mAP = ' + str(overallCarAp) + ' is at least decent' + '\n', 'green', attrs=['bold']))
+                        else:
+                            print(termcolor.colored('\n' + 'warning, overall car mAP = ' + str(overallCarAp) + ' is below an acceptable level, result is suspect' + '\n', 'red', attrs=['bold']))
+                        # end if
+                    # end if
                 # end for
             # end with
 

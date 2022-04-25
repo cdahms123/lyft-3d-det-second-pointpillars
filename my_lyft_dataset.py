@@ -104,39 +104,33 @@ class MyLyftDataset(Dataset):
 
         lyftInfoDict = self.getLyftInfoDict(frameId)
 
-
-
         itemDict = self.getItemDict(lyftInfoDict)
 
         return itemDict
     # end function
 
     def getLyftInfoDict(self, frameId: str) -> Dict:
-        sample = self.lyft.get('sample', frameId)
+        sampleData = self.lyft.get('sample', frameId)
 
-        lidar_token = sample['data']['LIDAR_TOP']
-        cam_front_token = sample['data']['CAM_FRONT']
-        sample_data_record = self.lyft.get('sample_data', sample['data']['LIDAR_TOP'])
+        lidarTopId: str = sampleData['data']['LIDAR_TOP']
+        sample_data_record = self.lyft.get('sample_data', sampleData['data']['LIDAR_TOP'])
         cal_sensor_record = self.lyft.get('calibrated_sensor', sample_data_record['calibrated_sensor_token'])
         pose_record = self.lyft.get('ego_pose', sample_data_record['ego_pose_token'])
-        lidar_path, boxes, _ = self.lyft.get_sample_data(lidar_token)
-        cam_path, _, cam_intrinsic = self.lyft.get_sample_data(cam_front_token)
+        lidar_path, boxes, _ = self.lyft.get_sample_data(lidarTopId)
 
         lyftInfoDict = {
+            'token': frameId,
             'lidar_path': lidar_path,
-            'cam_front_path': cam_path,
-            'token': sample['token'],
             'lidar2ego_rotation': cal_sensor_record['rotation'],
             'lidar2ego_translation': cal_sensor_record['translation'],
             'ego2global_rotation': pose_record['rotation'],
-            'ego2global_translation': pose_record['translation'],
-            'timestamp': sample['timestamp']
+            'ego2global_translation': pose_record['translation']
         }
 
         # if in training mode, prep the ground truth data and add to lyftInfoDict
         if self._training:
             annotations = []
-            for annToken in sample['anns']:
+            for annToken in sampleData['anns']:
                 annotation = self.lyft.get('sample_annotation', annToken)
                 annotations.append(annotation)
             # end for
@@ -159,15 +153,7 @@ class MyLyftDataset(Dataset):
 
     def getItemDict(self, lyftInfoDict: Dict) -> Union[Dict, None]:
 
-        frameInfoDict = {
-            'lidar': {
-                'type': 'lidar',
-                'points': None
-            },
-            'metadata': {
-                'token': lyftInfoDict['token']
-            },
-        }
+        frameInfoDictMetadata = {'token': lyftInfoDict['token']}
 
         # there is a bad data point in the Lyft dataset, file name host-a011_lidar1_1233090652702363606.bin,
         # sample_data_token 25cca7dd22b1f0a2c7664ddfa285694193a80d033896d4df70cb0e29a3d466e2, which will cause a crash
@@ -182,24 +168,22 @@ class MyLyftDataset(Dataset):
         points[: 3] = 0
 
         # noinspection PyTypedDict
-        frameInfoDict['lidar']['points'] = points
+        frameInfoDictLidarPoints = points
 
         if 'gt_boxes' in lyftInfoDict:
             mask = lyftInfoDict['num_lidar_pts'] > 0
             gt_boxes = lyftInfoDict['gt_boxes'][mask]
-            frameInfoDict['lidar']['annotations'] = {
-                'boxes': gt_boxes,
-                'names': lyftInfoDict['gt_names'][mask]
-            }
+            frameInfoDictLidarAnnotations = { 'boxes': gt_boxes,
+                                              'names': lyftInfoDict['gt_names'][mask] }
         # end if
 
         t = time.time()
 
         class_names = self._target_assigner.classes
-        points = frameInfoDict['lidar']['points']
+        points = frameInfoDictLidarPoints
 
         if self._training:
-            anno_dict = frameInfoDict['lidar']['annotations']
+            anno_dict = frameInfoDictLidarAnnotations
             gt_dict = {
                 'gt_boxes': anno_dict['boxes'],
                 'gt_names': anno_dict['names'],
@@ -292,7 +276,7 @@ class MyLyftDataset(Dataset):
         anchors_mask = None
 
         metrics['prep_time'] = time.time() - t
-        itemDict['metadata'] = frameInfoDict['metadata']
+        itemDict['metadata'] = frameInfoDictMetadata
 
         # if in test mode (no ground truths) we're done !!
         if not self._training:
