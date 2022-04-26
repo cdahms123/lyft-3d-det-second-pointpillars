@@ -184,9 +184,6 @@ class MyLyftDataset(Dataset):
     # end function
 
     def getItemDict(self, lyftInfoDict: Dict) -> Union[Dict, None]:
-
-        frameInfoDictMetadata = {'token': lyftInfoDict['token']}
-
         # there is a bad data point in the Lyft dataset, file name host-a011_lidar1_1233090652702363606.bin,
         # sample_data_token 25cca7dd22b1f0a2c7664ddfa285694193a80d033896d4df70cb0e29a3d466e2, which will cause a crash
         # when read in when reshaped to (-1, 5), so when this data point is encountered return None
@@ -199,22 +196,23 @@ class MyLyftDataset(Dataset):
         points = lidarPointCloud.points.transpose()
         points[: 3] = 0
 
-        # noinspection PyTypedDict
-        frameInfoDictLidarPoints = points
-
-        if 'gt_boxes' in lyftInfoDict:
-            mask = lyftInfoDict['boxes_as_1s'] > 0
-            gt_boxes = lyftInfoDict['gt_boxes'][mask]
-            frameInfoDictLidarAnnotations = { 'boxes': gt_boxes,
-                                              'names': lyftInfoDict['gt_names'][mask] }
-        # end if
+        # if 'gt_boxes' in lyftInfoDict:
+        #     mask = lyftInfoDict['boxes_as_1s'] > 0
+        #     gt_boxes = lyftInfoDict['gt_boxes'][mask]
+        #     frameInfoDictLidarAnnotations = { 'boxes': gt_boxes,
+        #                                       'names': lyftInfoDict['gt_names'][mask] }
+        # # end if
 
         t = time.time()
 
         class_names = self._target_assigner.classes
-        points = frameInfoDictLidarPoints
 
         if self._training:
+            mask = lyftInfoDict['boxes_as_1s'] > 0
+            gt_boxes = lyftInfoDict['gt_boxes'][mask]
+            frameInfoDictLidarAnnotations = {'boxes': gt_boxes,
+                                             'names': lyftInfoDict['gt_names'][mask]}
+
             anno_dict = frameInfoDictLidarAnnotations
             gt_dict = {
                 'gt_boxes': anno_dict['boxes'],
@@ -308,7 +306,7 @@ class MyLyftDataset(Dataset):
         anchors_mask = None
 
         metrics['prep_time'] = time.time() - t
-        itemDict['metadata'] = frameInfoDictMetadata
+        itemDict['metadata'] = {'token': lyftInfoDict['token']}
 
         # if in test mode (no ground truths) we're done !!
         if not self._training:
