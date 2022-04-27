@@ -196,50 +196,67 @@ class MyLyftDataset(Dataset):
         points = lidarPointCloud.points.transpose()
         points[: 3] = 0
 
-        # if 'gt_boxes' in lyftInfoDict:
-        #     mask = lyftInfoDict['boxes_as_1s'] > 0
-        #     gt_boxes = lyftInfoDict['gt_boxes'][mask]
-        #     frameInfoDictLidarAnnotations = { 'boxes': gt_boxes,
-        #                                       'names': lyftInfoDict['gt_names'][mask] }
-        # # end if
-
         t = time.time()
 
         class_names = self._target_assigner.classes
 
         if self._training:
             mask = lyftInfoDict['boxes_as_1s'] > 0
-            gt_boxes = lyftInfoDict['gt_boxes'][mask]
-            frameInfoDictLidarAnnotations = {'boxes': gt_boxes,
-                                             'names': lyftInfoDict['gt_names'][mask]}
 
-            anno_dict = frameInfoDictLidarAnnotations
+            assert np.all(mask), 'error, mask = ' + str(mask) + ', should be all True'
+
+            # gt_boxes = lyftInfoDict['gt_boxes'][mask]
+
+            # ToDo: both of these next 2 dictionaries are derived directly from lyftInfoDict,
+            #       for simplification try to eliminate both
+
+            anno_dict = {
+                'boxes': lyftInfoDict['gt_boxes'][mask],
+                'names': lyftInfoDict['gt_names'][mask]
+            }
+
             gt_dict = {
                 'gt_boxes': anno_dict['boxes'],
                 'gt_names': anno_dict['names'],
-                'gt_importance': np.ones([anno_dict['boxes'].shape[0]], dtype=anno_dict['boxes'].dtype),
+                'gt_importance': np.ones([anno_dict['boxes'].shape[0]], dtype=anno_dict['boxes'].dtype)
             }
 
             if 'difficulty' not in anno_dict:
                 difficulty = np.zeros([anno_dict['boxes'].shape[0]], dtype=np.int32)
                 gt_dict['difficulty'] = difficulty
             else:
+                # ToDo: remove else and above if once proven out it never gets in here
+                print('\n\n' + 'difficulty was already in anno_dict' + '\n')
+                quit()
                 gt_dict['difficulty'] = anno_dict['difficulty']
             # end if
 
             if self._use_group_id and 'group_ids' in anno_dict:
+                # ToDo: remove if once proven out it never gets in here
+                print('\n\n' + "in if self._use_group_id and 'group_ids' in anno_dict:" + '\n')
+                quit()
                 group_ids = anno_dict['group_ids']
                 gt_dict['group_ids'] = group_ids
             # end if
 
             selected = self.drop_arrays_by_name(gt_dict['gt_names'], ['DontCare'])
             self._dict_select(gt_dict, selected)
+
             if self._remove_unknown:
+                # ToDo: remove if once proven out it never gets in here
+                print('\n\n' + "in if self._remove_unknown:" + '\n')
+                quit()
                 remove_mask = gt_dict['difficulty'] == -1
                 keep_mask = np.logical_not(remove_mask)
                 self._dict_select(gt_dict, keep_mask)
+            # end if
+
             gt_dict.pop('difficulty')
+
             if self._min_points_in_gt > 0:
+                # ToDo: remove if once proven out it never gets in here
+                print('\n\n' + "in if self._min_points_in_gt > 0:" + '\n')
+                quit()
                 point_counts = box_np_ops.points_count_rbbox(points, gt_dict['gt_boxes'])
                 mask = point_counts >= self._min_points_in_gt
                 self._dict_select(gt_dict, mask)
@@ -247,6 +264,9 @@ class MyLyftDataset(Dataset):
 
             group_ids = None
             if 'group_ids' in gt_dict:
+                # ToDo: remove if once proven out it never gets in here
+                print('\n\n' + "in if 'group_ids' in gt_dict:" + '\n')
+                quit()
                 group_ids = gt_dict['group_ids']
             # end if
 
@@ -261,16 +281,11 @@ class MyLyftDataset(Dataset):
                 num_try=100)
 
             self._dict_select(gt_dict, gt_boxes_mask)
-            gt_classes = np.array(
-                [class_names.index(n) + 1 for n in gt_dict['gt_names']],
-                dtype=np.int32)
+            gt_classes = np.array([class_names.index(n) + 1 for n in gt_dict['gt_names']], dtype=np.int32)
             gt_dict['gt_classes'] = gt_classes
-            gt_dict['gt_boxes'], points = prep.random_flip(gt_dict['gt_boxes'],
-                                                           points, 0.5, self._random_flip_x, self._random_flip_y)
-            gt_dict['gt_boxes'], points = prep.global_rotation_v2(
-                gt_dict['gt_boxes'], points, *self._global_rotation_noise)
-            gt_dict['gt_boxes'], points = prep.global_scaling_v2(
-                gt_dict['gt_boxes'], points, *self._global_scaling_noise)
+            gt_dict['gt_boxes'], points = prep.random_flip(gt_dict['gt_boxes'], points, 0.5, self._random_flip_x, self._random_flip_y)
+            gt_dict['gt_boxes'], points = prep.global_rotation_v2(gt_dict['gt_boxes'], points, *self._global_rotation_noise)
+            gt_dict['gt_boxes'], points = prep.global_scaling_v2(gt_dict['gt_boxes'], points, *self._global_scaling_noise)
             prep.global_translate_(gt_dict['gt_boxes'], points, self._global_translate_noise_std)
             bv_range = self._voxel_generator.point_cloud_range[[0, 1, 3, 4]]
             mask = prep.filter_gt_box_outside_range_by_center(gt_dict['gt_boxes'], bv_range)
