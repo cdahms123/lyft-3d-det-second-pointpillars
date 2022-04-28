@@ -205,70 +205,25 @@ class MyLyftDataset(Dataset):
 
             assert np.all(mask), 'error, mask = ' + str(mask) + ', should be all True'
 
-            # gt_boxes = lyftInfoDict['gt_boxes'][mask]
-
-            # ToDo: both of these next 2 dictionaries are derived directly from lyftInfoDict,
-            #       for simplification try to eliminate both
-
-            anno_dict = {
-                'boxes': lyftInfoDict['gt_boxes'][mask],
-                'names': lyftInfoDict['gt_names'][mask]
-            }
+            # ToDo: try to remove gt_dict (derived directly from lyftInfoDict)
 
             gt_dict = {
-                'gt_boxes': anno_dict['boxes'],
-                'gt_names': anno_dict['names'],
-                'gt_importance': np.ones([anno_dict['boxes'].shape[0]], dtype=anno_dict['boxes'].dtype)
+                'gt_boxes': lyftInfoDict['gt_boxes'][mask],
+                'gt_names': lyftInfoDict['gt_names'][mask],
+                'gt_importance': np.ones([lyftInfoDict['gt_boxes'][mask].shape[0]], dtype=lyftInfoDict['gt_boxes'][mask].dtype)
             }
 
-            if 'difficulty' not in anno_dict:
-                difficulty = np.zeros([anno_dict['boxes'].shape[0]], dtype=np.int32)
-                gt_dict['difficulty'] = difficulty
-            else:
-                # ToDo: remove else and above if once proven out it never gets in here
-                print('\n\n' + 'difficulty was already in anno_dict' + '\n')
-                quit()
-                gt_dict['difficulty'] = anno_dict['difficulty']
-            # end if
-
-            if self._use_group_id and 'group_ids' in anno_dict:
-                # ToDo: remove if once proven out it never gets in here
-                print('\n\n' + "in if self._use_group_id and 'group_ids' in anno_dict:" + '\n')
-                quit()
-                group_ids = anno_dict['group_ids']
-                gt_dict['group_ids'] = group_ids
-            # end if
+            difficulty = np.zeros([lyftInfoDict['gt_boxes'][mask].shape[0]], dtype=np.int32)
+            gt_dict['difficulty'] = difficulty
 
             selected = self.drop_arrays_by_name(gt_dict['gt_names'], ['DontCare'])
             self._dict_select(gt_dict, selected)
 
-            if self._remove_unknown:
-                # ToDo: remove if once proven out it never gets in here
-                print('\n\n' + "in if self._remove_unknown:" + '\n')
-                quit()
-                remove_mask = gt_dict['difficulty'] == -1
-                keep_mask = np.logical_not(remove_mask)
-                self._dict_select(gt_dict, keep_mask)
-            # end if
-
             gt_dict.pop('difficulty')
 
-            if self._min_points_in_gt > 0:
-                # ToDo: remove if once proven out it never gets in here
-                print('\n\n' + "in if self._min_points_in_gt > 0:" + '\n')
-                quit()
-                point_counts = box_np_ops.points_count_rbbox(points, gt_dict['gt_boxes'])
-                mask = point_counts >= self._min_points_in_gt
-                self._dict_select(gt_dict, mask)
             gt_boxes_mask = np.array([n in class_names for n in gt_dict['gt_names']], dtype=np.bool_)
 
             group_ids = None
-            if 'group_ids' in gt_dict:
-                # ToDo: remove if once proven out it never gets in here
-                print('\n\n' + "in if 'group_ids' in gt_dict:" + '\n')
-                quit()
-                group_ids = gt_dict['group_ids']
-            # end if
 
             prep.noise_per_object_v3_(
                 gt_dict['gt_boxes'],
