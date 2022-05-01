@@ -192,6 +192,7 @@ class MyLyftDataset(Dataset):
 
         lidarPointCloud: LidarPointCloud = LidarPointCloud.from_file(lyftInfoDict['lidar_path'])
         points = lidarPointCloud.points.transpose()
+        # points is now n rows x 4 cols (x, y, z, intensity)
         # set the 4th column (intensity) to all zeros
         points[: 3] = 0
 
@@ -208,8 +209,6 @@ class MyLyftDataset(Dataset):
             class_names = self._target_assigner.classes
             gt_boxes_mask = np.array([n in class_names for n in gt_dict['gt_names']], dtype=np.bool_)
 
-            group_ids = None
-
             prep.noise_per_object_v3_(
                 gt_dict['gt_boxes'],
                 points,
@@ -217,7 +216,7 @@ class MyLyftDataset(Dataset):
                 rotation_perturb=self._gt_rotation_noise,
                 center_noise_std=self._gt_loc_noise_std,
                 global_random_rot_range=self._global_random_rot_range,
-                group_ids=group_ids,
+                group_ids=None,
                 num_try=100)
 
             self._dict_select(gt_dict, gt_boxes_mask)
@@ -234,23 +233,21 @@ class MyLyftDataset(Dataset):
             gt_dict['gt_boxes'][:, 6] = box_np_ops.limit_period(gt_dict['gt_boxes'][:, 6], offset=0.5, period=2 * np.pi)
         # end if
 
-        res = self._voxel_generator.generate(points, self._max_voxels)
-        voxels = res['voxels']
-        coordinates = res['coordinates']
-        num_points = res['num_points_per_voxel']
+        voxelDict = self._voxel_generator.generate(points, self._max_voxels)
+        voxels = voxelDict['voxels']
+        num_points = voxelDict['num_points_per_voxel']
+        coordinates = voxelDict['coordinates']
         num_voxels = np.array([voxels.shape[0]], dtype=np.int64)
 
-        metrics = {}
         itemDict = {
             'voxels': voxels,
             'num_points': num_points,
             'coordinates': coordinates,
             'num_voxels': num_voxels,
-            'metrics': metrics,
+            'metrics': {},
+            'anchors': self._anchor_cache['anchors'],
+            'metadata': {'token': lyftInfoDict['token']}
         }
-
-        itemDict['anchors'] = self._anchor_cache['anchors']
-        itemDict['metadata'] = {'token': lyftInfoDict['token']}
 
         # if in test mode (no ground truths) we're done !!
         if not self._training:
