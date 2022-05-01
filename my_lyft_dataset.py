@@ -171,13 +171,13 @@ class MyLyftDataset(Dataset):
             names = [b.name for b in boxes]
             names = np.array(names)
             gt_boxes = np.concatenate([locs, dims, -yaws - np.pi / 2], axis=1)
-            # gt_boxes should be n rows x 1 col, n rows is the number of boxes in the frame, cols are x, y, z, w, l, h, yaw
+            # gt_boxes should be n rows x 7 col, n rows is the number of boxes in the frame, cols are x, y, z, w, l, h, yaw
             assert gt_boxes.shape[1] == 7, 'error, gt_boxes.shape[1] = ' + str(gt_boxes.shape[1]) + ', should be 7'
 
             lyftInfoDict['gt_boxes'] = gt_boxes
             lyftInfoDict['gt_names'] = names
 
-            lyftInfoDict['boxes_as_1s'] = np.array([1 for box in boxes])
+            # lyftInfoDict['boxes_as_1s'] = np.array([1 for box in boxes])
         # end if
 
         return lyftInfoDict
@@ -201,19 +201,47 @@ class MyLyftDataset(Dataset):
         class_names = self._target_assigner.classes
 
         if self._training:
-            mask = lyftInfoDict['boxes_as_1s'] > 0
+            # mask = lyftInfoDict['boxes_as_1s'] > 0
 
-            assert np.all(mask), 'error, mask = ' + str(mask) + ', should be all True'
+            # print('\n' + 'type(mask): ')
+            # print(type(mask))
+            # print('mask.dtype: ')
+            # print(mask.dtype)
+            # print('mask.shape: ')
+            # print(mask.shape)
+            # print('mask: ')
+            # print(mask)
+
+            # assert np.all(mask), 'error, mask = ' + str(mask) + ', should be all True'
 
             # ToDo: try to remove gt_dict (derived directly from lyftInfoDict)
 
+            # gt_dict = {
+            #     'gt_boxes': lyftInfoDict['gt_boxes'][mask],
+            #     'gt_names': lyftInfoDict['gt_names'][mask],
+            #     'gt_importance': np.ones([lyftInfoDict['gt_boxes'][mask].shape[0]], dtype=lyftInfoDict['gt_boxes'][mask].dtype)
+            # }
+
             gt_dict = {
-                'gt_boxes': lyftInfoDict['gt_boxes'][mask],
-                'gt_names': lyftInfoDict['gt_names'][mask],
-                'gt_importance': np.ones([lyftInfoDict['gt_boxes'][mask].shape[0]], dtype=lyftInfoDict['gt_boxes'][mask].dtype)
+                'gt_boxes': lyftInfoDict['gt_boxes'],
+                'gt_names': lyftInfoDict['gt_names'],
+                'gt_importance': np.ones([lyftInfoDict['gt_boxes'].shape[0]], dtype=lyftInfoDict['gt_boxes'].dtype)
             }
 
-            difficulty = np.zeros([lyftInfoDict['gt_boxes'][mask].shape[0]], dtype=np.int32)
+            # print('\n' + 'gt_dict[\'gt_boxes\']: ')
+            # print(type(gt_dict['gt_boxes']))
+            # print('gt_dict[\'gt_boxes\'].dtype: ')
+            # print(gt_dict['gt_boxes'].dtype)
+            # print('gt_dict[\'gt_boxes\'].shape: ')
+            # print(gt_dict['gt_boxes'].shape)
+            # print('gt_dict[\'gt_boxes\']: ')
+            # print(gt_dict['gt_boxes'])
+            # print('')
+            #
+            # quit()
+
+            # difficulty = np.zeros([lyftInfoDict['gt_boxes'][mask].shape[0]], dtype=np.int32)
+            difficulty = np.zeros([lyftInfoDict['gt_boxes'].shape[0]], dtype=np.int32)
             gt_dict['difficulty'] = difficulty
 
             selected = self.drop_arrays_by_name(gt_dict['gt_names'], ['DontCare'])
@@ -456,7 +484,7 @@ class MyLyftDataset(Dataset):
 
 # end class
 
-def save_ap(gt, predictions, class_names, iou_threshold, output_dir):
+def save_ap(gt: List[Dict], predictions: List[Dict], class_names: List[str], iou_threshold: float, output_dir):
     print('entering save_ap, calling get_average_precisions with iou_threshold = ' + str(iou_threshold))
     ap = get_average_precisions(gt, predictions, class_names, iou_threshold)
 
@@ -501,7 +529,7 @@ def get_average_precisions(gt: List[Dict], predictions: List[Dict], class_names:
         'score': 0.3077029437237213
     }]
     """
-    assert 0 <= iou_threshold <= 1
+    assert 0.0 <= iou_threshold <= 1.0
 
     gt_by_class_name = group_by_key(gt, 'name')
     pred_by_class_name = group_by_key(predictions, 'name')
