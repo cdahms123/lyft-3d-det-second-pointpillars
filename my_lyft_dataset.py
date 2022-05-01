@@ -142,31 +142,6 @@ class MyLyftDataset(Dataset):
                 boxes[i].rotate(pyquaternion.Quaternion(cal_sensor_record["rotation"]).inverse)
             # end for
 
-            # locs = []
-            # dims = []
-            # yaws = []
-            # for box in boxes:
-            #     locs.append(box.center)
-            #     dims.append(box.wlh)
-            #     yaws.append(box.orientation.yaw_pitch_roll[0])
-            # # end for
-            #
-            # locs = np.array(locs, np.float64)
-            # # locs should be n rows x 3 cols, n rows is number of boxes in the frame, cols are x, y, z
-            # assert locs.shape[1] == 3, 'error, locs.shape[1] = ' + str(locs.shape[1]) + ', should be 3'
-            #
-            # dims = np.array(dims, np.float64)
-            # # dims should be n rows x 3 cols, n rows is number of boxes in the frame, cols are w, l, h
-            # assert dims.shape[1] == 3, 'error, dims.shape[1] = ' + str(dims.shape[1]) + ', should be 3'
-            #
-            # yaws = np.array(yaws).reshape(-1, 1)
-            # # yaws should be n rows x 1 col, n rows is the number of boxes in the frame, col is yaw angle
-            # assert yaws.shape[1] == 1, 'error, yaws.shape[1] = ' + str(yaws.shape[1]) + ', should be 1'
-            #
-            # gt_boxes = np.concatenate([locs, dims, -yaws - np.pi / 2], axis=1)
-            # # gt_boxes should be n rows x 7 col, n rows is the number of boxes in the frame, cols are x, y, z, w, l, h, yaw
-            # assert gt_boxes.shape[1] == 7, 'error, gt_boxes.shape[1] = ' + str(gt_boxes.shape[1]) + ', should be 7'
-
             gt_boxes = np.zeros((len(boxes), 7), dtype=np.float64)
             for i, box in enumerate(boxes):
                 gt_boxes[i, 0:3] = box.center   # x, y, z
@@ -437,7 +412,7 @@ def save_ap(gt: List[Dict], predictions: List[Dict], class_names: List[str], iou
     print('entering save_ap, calling get_average_precisions with iou_threshold = ' + str(iou_threshold))
     startTime = time.time()
     ap = get_average_precisions(gt, predictions, class_names, iou_threshold)
-    print('get_average_precisions with iou_threshold = ' + str(iou_threshold) + ' took ' + '{:.2f}'.format(time.time() - startTime) + ' seconds')
+    print('\n' + 'get_average_precisions with iou_threshold = ' + str(iou_threshold) + ' took ' + '{:.2f}'.format(time.time() - startTime) + ' seconds')
 
     metric = dict()
     for idx, class_name in enumerate(class_names):
