@@ -62,7 +62,7 @@ TEST_BATCH_SIZE = 2
 PRED_THRESHOLD = 0.2
 
 USE_HALF = True
-OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.15
+OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.15    # 0.15 for 1/2, 0.2 for full
 
 def main():
     np.set_printoptions(suppress=True)

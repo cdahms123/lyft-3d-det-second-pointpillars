@@ -176,8 +176,6 @@ class MyLyftDataset(Dataset):
 
             lyftInfoDict['gt_boxes'] = gt_boxes
             lyftInfoDict['gt_names'] = names
-
-            # lyftInfoDict['boxes_as_1s'] = np.array([1 for box in boxes])
         # end if
 
         return lyftInfoDict
@@ -194,6 +192,7 @@ class MyLyftDataset(Dataset):
 
         lidarPointCloud: LidarPointCloud = LidarPointCloud.from_file(lyftInfoDict['lidar_path'])
         points = lidarPointCloud.points.transpose()
+        # set the 4th column (intensity) to all zeros
         points[: 3] = 0
 
         t = time.time()
@@ -201,48 +200,12 @@ class MyLyftDataset(Dataset):
         class_names = self._target_assigner.classes
 
         if self._training:
-            # mask = lyftInfoDict['boxes_as_1s'] > 0
-
-            # print('\n' + 'type(mask): ')
-            # print(type(mask))
-            # print('mask.dtype: ')
-            # print(mask.dtype)
-            # print('mask.shape: ')
-            # print(mask.shape)
-            # print('mask: ')
-            # print(mask)
-
-            # assert np.all(mask), 'error, mask = ' + str(mask) + ', should be all True'
-
-            # ToDo: try to remove gt_dict (derived directly from lyftInfoDict)
-
-            # gt_dict = {
-            #     'gt_boxes': lyftInfoDict['gt_boxes'][mask],
-            #     'gt_names': lyftInfoDict['gt_names'][mask],
-            #     'gt_importance': np.ones([lyftInfoDict['gt_boxes'][mask].shape[0]], dtype=lyftInfoDict['gt_boxes'][mask].dtype)
-            # }
-
             gt_dict = {
                 'gt_boxes': lyftInfoDict['gt_boxes'],
                 'gt_names': lyftInfoDict['gt_names'],
+                'difficulty': np.zeros([lyftInfoDict['gt_boxes'].shape[0]], dtype=np.int32),
                 'gt_importance': np.ones([lyftInfoDict['gt_boxes'].shape[0]], dtype=lyftInfoDict['gt_boxes'].dtype)
             }
-
-            # print('\n' + 'gt_dict[\'gt_boxes\']: ')
-            # print(type(gt_dict['gt_boxes']))
-            # print('gt_dict[\'gt_boxes\'].dtype: ')
-            # print(gt_dict['gt_boxes'].dtype)
-            # print('gt_dict[\'gt_boxes\'].shape: ')
-            # print(gt_dict['gt_boxes'].shape)
-            # print('gt_dict[\'gt_boxes\']: ')
-            # print(gt_dict['gt_boxes'])
-            # print('')
-            #
-            # quit()
-
-            # difficulty = np.zeros([lyftInfoDict['gt_boxes'][mask].shape[0]], dtype=np.int32)
-            difficulty = np.zeros([lyftInfoDict['gt_boxes'].shape[0]], dtype=np.int32)
-            gt_dict['difficulty'] = difficulty
 
             selected = self.drop_arrays_by_name(gt_dict['gt_names'], ['DontCare'])
             self._dict_select(gt_dict, selected)
@@ -273,7 +236,6 @@ class MyLyftDataset(Dataset):
             bv_range = self._voxel_generator.point_cloud_range[[0, 1, 3, 4]]
             mask = prep.filter_gt_box_outside_range_by_center(gt_dict['gt_boxes'], bv_range)
             self._dict_select(gt_dict, mask)
-
             # limit rad to [-pi, pi]
             gt_dict['gt_boxes'][:, 6] = box_np_ops.limit_period(gt_dict['gt_boxes'][:, 6], offset=0.5, period=2 * np.pi)
         # end if
@@ -295,41 +257,38 @@ class MyLyftDataset(Dataset):
             'metrics': metrics,
         }
 
-        anchors = self._anchor_cache['anchors']
-        anchors_dict = self._anchor_cache['anchors_dict']
-        matched_thresholds = self._anchor_cache['matched_thresholds']
-        unmatched_thresholds = self._anchor_cache['unmatched_thresholds']
-
-        itemDict['anchors'] = anchors
-        anchors_mask = None
-
+        itemDict['anchors'] = self._anchor_cache['anchors']
         metrics['prep_time'] = time.time() - t
         itemDict['metadata'] = {'token': lyftInfoDict['token']}
 
         # if in test mode (no ground truths) we're done !!
         if not self._training:
             return itemDict
+        else:
+            # noinspection PyUnboundLocalVariable
+            itemDict['gt_names'] = gt_dict['gt_names']
+
+            anchors_dict = self._anchor_cache['anchors_dict']
+            matched_thresholds = self._anchor_cache['matched_thresholds']
+            unmatched_thresholds = self._anchor_cache['unmatched_thresholds']
+
+            targets_dict = self._target_assigner.assign(
+                itemDict['anchors'],
+                anchors_dict,
+                gt_dict['gt_boxes'],
+                anchors_mask=None,
+                gt_classes=gt_dict['gt_classes'],
+                gt_names=gt_dict['gt_names'],
+                matched_thresholds=matched_thresholds,
+                unmatched_thresholds=unmatched_thresholds,
+                importance=gt_dict['gt_importance'])
+
+            itemDict.update({'labels': targets_dict['labels'],
+                             'reg_targets': targets_dict['bbox_targets'],
+                             'importance': targets_dict['importance']})
+
+            return itemDict
         # end if
-
-        # noinspection PyUnboundLocalVariable
-        itemDict['gt_names'] = gt_dict['gt_names']
-
-        targets_dict = self._target_assigner.assign(
-            anchors,
-            anchors_dict,
-            gt_dict['gt_boxes'],
-            anchors_mask,
-            gt_classes=gt_dict['gt_classes'],
-            gt_names=gt_dict['gt_names'],
-            matched_thresholds=matched_thresholds,
-            unmatched_thresholds=unmatched_thresholds,
-            importance=gt_dict['gt_importance'])
-
-        itemDict.update({'labels': targets_dict['labels'],
-                         'reg_targets': targets_dict['bbox_targets'],
-                         'importance': targets_dict['importance']})
-
-        return itemDict
     # end function
 
     def _dict_select(self, dict_, inds):
