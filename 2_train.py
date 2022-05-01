@@ -62,7 +62,7 @@ PRED_THRESHOLD = 0.2
 
 USE_HALF = False
 OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.21    # 0.16 for 1/2, 0.21 for full
-MAKE_SUBMISSION = False
+MAKE_SUBMISSION = True
 
 def main():
     np.set_printoptions(suppress=True)

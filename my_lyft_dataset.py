@@ -142,39 +142,45 @@ class MyLyftDataset(Dataset):
                 boxes[i].rotate(pyquaternion.Quaternion(cal_sensor_record["rotation"]).inverse)
             # end for
 
-            locs = []
-            for box in boxes:
-                locs.append(box.center)
-            # end for
-            # locs = np.array(locs).reshape(-1, 3)
-            locs = np.array(locs, np.float64)
-            # locs should be n rows x 3 cols, n rows is number of boxes in the frame, cols are x, y, z
-            assert locs.shape[1] == 3, 'error, locs.shape[1] = ' + str(locs.shape[1]) + ', should be 3'
+            # locs = []
+            # dims = []
+            # yaws = []
+            # for box in boxes:
+            #     locs.append(box.center)
+            #     dims.append(box.wlh)
+            #     yaws.append(box.orientation.yaw_pitch_roll[0])
+            # # end for
+            #
+            # locs = np.array(locs, np.float64)
+            # # locs should be n rows x 3 cols, n rows is number of boxes in the frame, cols are x, y, z
+            # assert locs.shape[1] == 3, 'error, locs.shape[1] = ' + str(locs.shape[1]) + ', should be 3'
+            #
+            # dims = np.array(dims, np.float64)
+            # # dims should be n rows x 3 cols, n rows is number of boxes in the frame, cols are w, l, h
+            # assert dims.shape[1] == 3, 'error, dims.shape[1] = ' + str(dims.shape[1]) + ', should be 3'
+            #
+            # yaws = np.array(yaws).reshape(-1, 1)
+            # # yaws should be n rows x 1 col, n rows is the number of boxes in the frame, col is yaw angle
+            # assert yaws.shape[1] == 1, 'error, yaws.shape[1] = ' + str(yaws.shape[1]) + ', should be 1'
+            #
+            # gt_boxes = np.concatenate([locs, dims, -yaws - np.pi / 2], axis=1)
+            # # gt_boxes should be n rows x 7 col, n rows is the number of boxes in the frame, cols are x, y, z, w, l, h, yaw
+            # assert gt_boxes.shape[1] == 7, 'error, gt_boxes.shape[1] = ' + str(gt_boxes.shape[1]) + ', should be 7'
 
-            dims = []
-            for box in boxes:
-                dims.append(box.wlh)
+            gt_boxes = np.zeros((len(boxes), 7), dtype=np.float64)
+            for i, box in enumerate(boxes):
+                gt_boxes[i, 0:3] = box.center   # x, y, z
+                gt_boxes[i, 3:6] = box.wlh      # w, l, h
+                yaw = box.orientation.yaw_pitch_roll[0]
+                # ToDo: need to understand this yaw conversion better
+                yaw = -yaw - np.pi / 2
+                gt_boxes[i, 6] = yaw            # yaw
             # end for
-            # dims = np.array(dims).reshape(-1, 3)
-            dims = np.array(dims, np.float64)
-            # dims should be n rows x 3 cols, n rows is number of boxes in the frame, cols are w, l, h
-            assert dims.shape[1] == 3, 'error, dims.shape[1] = ' + str(dims.shape[1]) + ', should be 3'
 
-            yaws = []
-            for box in boxes:
-                yaws.append(box.orientation.yaw_pitch_roll[0])
-            # end for
-            yaws = np.array(yaws).reshape(-1, 1)
-            # yaws should be n rows x 1 col, n rows is the number of boxes in the frame, col is yaw angle
-            assert yaws.shape[1] == 1, 'error, yaws.shape[1] = ' + str(yaws.shape[1]) + ', should be 1'
+            lyftInfoDict['gt_boxes'] = gt_boxes
 
             names = [b.name for b in boxes]
             names = np.array(names)
-            gt_boxes = np.concatenate([locs, dims, -yaws - np.pi / 2], axis=1)
-            # gt_boxes should be n rows x 7 col, n rows is the number of boxes in the frame, cols are x, y, z, w, l, h, yaw
-            assert gt_boxes.shape[1] == 7, 'error, gt_boxes.shape[1] = ' + str(gt_boxes.shape[1]) + ', should be 7'
-
-            lyftInfoDict['gt_boxes'] = gt_boxes
             lyftInfoDict['gt_names'] = names
         # end if
 
@@ -196,6 +202,7 @@ class MyLyftDataset(Dataset):
         # set the 4th column (intensity) to all zeros
         points[: 3] = 0
 
+        # this if block has to go before voxel_generator.generate(points, . . .) call below b/c this if block modifies points
         if self._training:
             gt_dict = {
                 'gt_boxes': lyftInfoDict['gt_boxes'],
@@ -234,16 +241,11 @@ class MyLyftDataset(Dataset):
         # end if
 
         voxelDict = self._voxel_generator.generate(points, self._max_voxels)
-        voxels = voxelDict['voxels']
-        num_points = voxelDict['num_points_per_voxel']
-        coordinates = voxelDict['coordinates']
-        num_voxels = np.array([voxels.shape[0]], dtype=np.int64)
-
         itemDict = {
-            'voxels': voxels,
-            'num_points': num_points,
-            'coordinates': coordinates,
-            'num_voxels': num_voxels,
+            'voxels': voxelDict['voxels'],
+            'num_points': voxelDict['num_points_per_voxel'],
+            'coordinates': voxelDict['coordinates'],
+            'num_voxels': np.array([voxelDict['voxels'].shape[0]], dtype=np.int64),
             'metrics': {},
             'anchors': self._anchor_cache['anchors'],
             'metadata': {'token': lyftInfoDict['token']}
@@ -433,7 +435,9 @@ class MyLyftDataset(Dataset):
 
 def save_ap(gt: List[Dict], predictions: List[Dict], class_names: List[str], iou_threshold: float, output_dir):
     print('entering save_ap, calling get_average_precisions with iou_threshold = ' + str(iou_threshold))
+    startTime = time.time()
     ap = get_average_precisions(gt, predictions, class_names, iou_threshold)
+    print('get_average_precisions with iou_threshold = ' + str(iou_threshold) + ' took ' + '{:.2f}'.format(time.time() - startTime) + ' seconds')
 
     metric = dict()
     for idx, class_name in enumerate(class_names):
@@ -452,11 +456,6 @@ def save_ap(gt: List[Dict], predictions: List[Dict], class_names: List[str], iou
 
 def get_average_precisions(gt: List[Dict], predictions: List[Dict], class_names: List[str], iou_threshold: float) -> np.array:
     """
-    This function is the same as copied from here:
-    https://github.com/lyft/nuscenes-devkit/blob/master/lyft_dataset_sdk/eval/detection/mAP_evaluation.py#L331
-    except an if-else has been added to handle the case where a class_name is in gt_by_class_name but not
-    in pred_by_class_name, or the other way around, to prevent a crash in such cases
-
     format for gt and predictions:
 
     gt = [{
