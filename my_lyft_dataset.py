@@ -199,14 +199,11 @@ class MyLyftDataset(Dataset):
             gt_dict = {
                 'gt_boxes': lyftInfoDict['gt_boxes'],
                 'gt_names': lyftInfoDict['gt_names'],
-                'difficulty': np.zeros([lyftInfoDict['gt_boxes'].shape[0]], dtype=np.int32),
                 'gt_importance': np.ones([lyftInfoDict['gt_boxes'].shape[0]], dtype=lyftInfoDict['gt_boxes'].dtype)
             }
 
             selected = self.drop_arrays_by_name(gt_dict['gt_names'], ['DontCare'])
             self._dict_select(gt_dict, selected)
-
-            gt_dict.pop('difficulty')
 
             class_names = self._target_assigner.classes
             gt_boxes_mask = np.array([n in class_names for n in gt_dict['gt_names']], dtype=np.bool_)

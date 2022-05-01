@@ -60,8 +60,8 @@ OUTPUT_SUB_FILE_LOC = os.path.join(os.getcwd(), 'results', 'kaggle_sub.csv')
 TEST_BATCH_SIZE = 2
 PRED_THRESHOLD = 0.2
 
-USE_HALF = True
-OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.15    # 0.15 for 1/2, 0.2 for full
+USE_HALF = False
+OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.21    # 0.16 for 1/2, 0.21 for full
 MAKE_SUBMISSION = False
 
 def main():
