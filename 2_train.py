@@ -61,6 +61,9 @@ OUTPUT_SUB_FILE_LOC = os.path.join(os.getcwd(), 'results', 'kaggle_sub.csv')
 TEST_BATCH_SIZE = 2
 PRED_THRESHOLD = 0.2
 
+USE_HALF = True
+OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.15
+
 def main():
     np.set_printoptions(suppress=True)
 
@@ -141,6 +144,11 @@ def main():
     # end for
 
     assert len(trainFrameIds) + len(valFrameIds) == len(lyftTrainVal.sample)
+
+    if USE_HALF:
+        trainFrameIds = random.sample(trainFrameIds, k=round(len(trainFrameIds) * 0.5))
+        valFrameIds = random.sample(valFrameIds, k=round(len(valFrameIds) * 0.5))
+    # end if
 
     trainIdxToFrameIdDict = dict()
     for i, trainFrameId in enumerate(trainFrameIds):
@@ -366,7 +374,7 @@ def main():
 
                         overallCarAp = float(ap_metrics['car'])
 
-                        if overallCarAp > 0.2:
+                        if overallCarAp > OVERALL_CAR_MAP_ACCEPTABLE_THRESH:
                             print(termcolor.colored('\n' + 'overall car mAP = ' + str(overallCarAp) + ' is at least decent' + '\n', 'green', attrs=['bold']))
                         else:
                             print(termcolor.colored('\n' + 'warning, overall car mAP = ' + str(overallCarAp) + ' is below an acceptable level, result is suspect' + '\n', 'red', attrs=['bold']))
