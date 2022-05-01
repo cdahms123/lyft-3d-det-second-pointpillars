@@ -41,7 +41,6 @@ MEASURE_TIME = False
 GRAPH_NAME = 'graph.pt'
 
 NUM_EPOCHS = 2
-MAKE_SUBMISSION = True
 
 TRAIN_DATA_ROOT_PATH = '/home/cdahms/LyftObjDetDataset/train'
 TEST_DATA_ROOT_PATH = '/home/cdahms/LyftObjDetDataset/test'
@@ -63,6 +62,7 @@ PRED_THRESHOLD = 0.2
 
 USE_HALF = True
 OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.15    # 0.15 for 1/2, 0.2 for full
+MAKE_SUBMISSION = False
 
 def main():
     np.set_printoptions(suppress=True)

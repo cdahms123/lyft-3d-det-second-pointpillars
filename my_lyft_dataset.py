@@ -195,10 +195,6 @@ class MyLyftDataset(Dataset):
         # set the 4th column (intensity) to all zeros
         points[: 3] = 0
 
-        t = time.time()
-
-        class_names = self._target_assigner.classes
-
         if self._training:
             gt_dict = {
                 'gt_boxes': lyftInfoDict['gt_boxes'],
@@ -212,6 +208,7 @@ class MyLyftDataset(Dataset):
 
             gt_dict.pop('difficulty')
 
+            class_names = self._target_assigner.classes
             gt_boxes_mask = np.array([n in class_names for n in gt_dict['gt_names']], dtype=np.bool_)
 
             group_ids = None
@@ -240,7 +237,6 @@ class MyLyftDataset(Dataset):
             gt_dict['gt_boxes'][:, 6] = box_np_ops.limit_period(gt_dict['gt_boxes'][:, 6], offset=0.5, period=2 * np.pi)
         # end if
 
-        t1 = time.time()
         res = self._voxel_generator.generate(points, self._max_voxels)
         voxels = res['voxels']
         coordinates = res['coordinates']
@@ -248,7 +244,6 @@ class MyLyftDataset(Dataset):
         num_voxels = np.array([voxels.shape[0]], dtype=np.int64)
 
         metrics = {}
-        metrics['voxel_gene_time'] = time.time() - t1
         itemDict = {
             'voxels': voxels,
             'num_points': num_points,
@@ -258,7 +253,6 @@ class MyLyftDataset(Dataset):
         }
 
         itemDict['anchors'] = self._anchor_cache['anchors']
-        metrics['prep_time'] = time.time() - t
         itemDict['metadata'] = {'token': lyftInfoDict['token']}
 
         # if in test mode (no ground truths) we're done !!
