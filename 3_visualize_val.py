@@ -16,7 +16,7 @@ from typing import List
 
 import vis_utils
 
-TRAIN_DATA_ROOT_PATH = '/home/cdahms/LyftObjDetDataset/train'
+TRAIN_DATA_ROOT_PATH = '../../LyftObjDetDataset/train'
 VAL_PREDS_FILE_LOC = os.path.join(os.getcwd(), 'results', 'val_preds.csv')
 
 SHOW_PLOTLY_MOUSEOVERS = False

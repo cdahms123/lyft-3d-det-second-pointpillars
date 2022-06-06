@@ -16,7 +16,7 @@ from typing import List
 
 import vis_utils
 
-LYFT_TEST_DATASET_LOC = '/home/cdahms/LyftObjDetDataset/test'
+LYFT_TEST_DATASET_LOC = '../../LyftObjDetDataset/test'
 KAGGLE_SUB_LOC = os.path.join(os.getcwd(), 'results', 'kaggle_sub.csv')
 
 SHOW_PLOTLY_MOUSEOVERS = False

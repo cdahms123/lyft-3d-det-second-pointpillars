@@ -42,14 +42,14 @@ GRAPH_NAME = 'graph.pt'
 
 NUM_EPOCHS = 2
 
-TRAIN_DATA_ROOT_PATH = '/home/cdahms/LyftObjDetDataset/train'
-TEST_DATA_ROOT_PATH = '/home/cdahms/LyftObjDetDataset/test'
+TRAIN_DATA_ROOT_PATH = '../../LyftObjDetDataset/train'
+TEST_DATA_ROOT_PATH = '../../LyftObjDetDataset/test'
 
 TRAIN_VERSION = 'v1.0-trainval'
 TEST_VERSION = 'v1.0-test'
 
 # inputs in dataset dir
-SAMPLE_SUBMISSION_LOC = '/home/cdahms/LyftObjDetDataset/sample_submission.csv'
+SAMPLE_SUBMISSION_LOC = '../../LyftObjDetDataset/sample_submission.csv'
 # inputs in results dir
 GRAPH_LOC = os.path.join(os.getcwd(), 'results', 'graph.pt')
 # output
@@ -215,8 +215,12 @@ def main():
         # training loop
         # for each batch in batches . . .
         for i, batch in enumerate(tqdm(trainDataLoader)):
-
             if batch is None:
+                print(termcolor.colored('batch is None !!', 'yellow', attrs=['bold']))
+                net.update_global_step()
+                continue
+            elif isinstance(batch, dict) and len(batch) == 0:
+                print(termcolor.colored('batch is a dictionary with zero items !!', 'yellow', attrs=['bold']))
                 net.update_global_step()
                 continue
             # end if
@@ -324,6 +328,17 @@ def main():
 
                 print('generating eval detections')
                 for batch in tqdm(evalDataLoader):
+
+                    if batch is None:
+                        print(termcolor.colored('batch is None !!', 'yellow', attrs=['bold']))
+                        net.update_global_step()
+                        continue
+                    elif isinstance(batch, dict) and len(batch) == 0:
+                        print(termcolor.colored('batch is a dictionary with zero items !!', 'yellow', attrs=['bold']))
+                        net.update_global_step()
+                        continue
+                    # end if
+
                     batch = my_lyft_dataset.example_convert_to_torch(batch, float_dtype, device)
 
                     currentDetections = net(batch)
