@@ -53,9 +53,12 @@ def main():
         lidarTopId: str = sample['data']['LIDAR_TOP']
         lidarFilePathObj: pathlib.Path = level5data.get_sample_data_path(lidarTopId)
         lidarPointCloud: LidarPointCloud = LidarPointCloud.from_file(lidarFilePathObj)
+        lidarPoints: np.ndarray = lidarPointCloud.points
+
+        print('frameId = ' + str(frameId) + ', lidarPoints.shape = ' + str(lidarPoints.shape))
 
         # intensity is always 100, so remove it
-        lidarPoints: np.ndarray = lidarPointCloud.points[:3, :]
+        lidarPoints: np.ndarray = lidarPoints[:3, :]
 
         lidarTopData: dict = level5data.get('sample_data', lidarTopId)
         gndTrBoxes: List[Box] = level5data.get_boxes(lidarTopId)

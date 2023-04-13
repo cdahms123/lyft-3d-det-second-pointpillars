@@ -55,7 +55,27 @@ class PFNLayer(nn.Module):
                                                                1).contiguous()
         x = F.relu(x)
 
+        # print('------------------------------------------------------')
+        # print('\n' + 'x before: ')
+        # print(type(x))
+        # print(x.shape)
+        # print(x)
+        # print('')
+
+        # original code
         x_max = torch.max(x, dim=1, keepdim=True)[0]
+
+        # # prevents crash
+        # if x.shape[0] > 0:
+        #     x_max = torch.max(x, dim=1, keepdim=True)[0]
+        # else:
+        #     x_max = x[:, 0, :]
+
+        # print('x after: ')
+        # print(type(x))
+        # print(x.shape)
+        # print(x)
+        # print('')
 
         if self.last_vfe:
             return x_max

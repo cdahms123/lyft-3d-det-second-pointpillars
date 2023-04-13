@@ -1,4 +1,4 @@
-cdahms@aurora-R12:~/workspace-av/lyft-3d-det-second-pointpillars$ python3 2_train.py 
+cdahms@aurora-R12:~/reporsitories/lyft-3d-det-second-pointpillars$ python3 2_train.py 
 /usr/local/lib/python3.8/dist-packages/numba/cuda/decorators.py:110: NumbaDeprecationWarning: Eager compilation of device functions is deprecated (this occurs when a signature is provided)
   warn(NumbaDeprecationWarning(msg))
 
@@ -18,10 +18,10 @@ num parameters: 66
 189504 sample_data,
 638179 sample_annotation,
 1 map,
-Done loading in 4.5 seconds.
+Done loading in 4.4 seconds.
 ======
 Reverse indexing ...
-Done reverse indexing in 1.2 seconds.
+Done reverse indexing in 1.3 seconds.
 ======
 
 len(allTrainValSceneIds) = 180
@@ -32,157 +32,157 @@ in MyLyftDataset init
 in MyLyftDataset init
 starting from step 0
 
-  0%|                                                                                                             | 0/4536 [00:00<?, ?it/s]runtime.step=1, runtime.steptime=1.863, loss.cls_loss=1.641e+03, loss.cls_loss_rt=1.641e+03, loss.loc_loss=5.788, loss.loc_loss_rt=5.788, loss.loc_elem=[0.3903, 0.3206, 0.4105, 0.4587, 0.5498, 0.4276, 0.3363], loss.cls_pos_rt=1.466e+03, loss.cls_neg_rt=175.3, loss.dir_rt=0.7499, rpn_acc=0.002548, misc.num_vox=49253, misc.num_pos=46, misc.num_neg=42413, misc.num_anchors=42500, misc.mem_usage=8.3
- 11%|██████████▉                                                                                        | 500/4536 [01:27<11:17,  5.96it/s]runtime.step=501, runtime.steptime=0.1714, loss.cls_loss=44.64, loss.cls_loss_rt=0.4349, loss.loc_loss=1.504, loss.loc_loss_rt=1.045, loss.loc_elem=[0.05887, 0.04157, 0.1389, 0.04051, 0.07523, 0.08148, 0.08587], loss.cls_pos_rt=0.05261, loss.cls_neg_rt=0.3823, loss.dir_rt=0.7644, rpn_acc=0.9924, misc.num_vox=60894, misc.num_pos=45, misc.num_neg=42430, misc.num_anchors=42500, misc.mem_usage=8.4
- 22%|█████████████████████▌                                                                            | 1000/4536 [02:53<09:57,  5.92it/s]runtime.step=1001, runtime.steptime=0.1714, loss.cls_loss=22.57, loss.cls_loss_rt=0.4221, loss.loc_loss=1.259, loss.loc_loss_rt=0.6, loss.loc_elem=[0.0274, 0.004494, 0.1144, 0.04053, 0.05352, 0.0545, 0.005153], loss.cls_pos_rt=0.1023, loss.cls_neg_rt=0.3198, loss.dir_rt=0.7274, rpn_acc=0.9959, misc.num_vox=69198, misc.num_pos=2, misc.num_neg=42495, misc.num_anchors=42500, misc.mem_usage=8.4
- 33%|████████████████████████████████▍                                                                 | 1500/4536 [04:18<08:29,  5.96it/s]runtime.step=1501, runtime.steptime=0.1711, loss.cls_loss=15.19, loss.cls_loss_rt=0.4034, loss.loc_loss=1.14, loss.loc_loss_rt=0.9956, loss.loc_elem=[0.05356, 0.05794, 0.08332, 0.03834, 0.05354, 0.05383, 0.1572], loss.cls_pos_rt=0.163, loss.cls_neg_rt=0.2405, loss.dir_rt=0.6808, rpn_acc=0.9971, misc.num_vox=57030, misc.num_pos=65, misc.num_neg=42404, misc.num_anchors=42500, misc.mem_usage=8.4
- 44%|███████████████████████████████████████████▏                                                      | 2000/4536 [05:44<07:37,  5.54it/s]runtime.step=2001, runtime.steptime=0.1716, loss.cls_loss=11.48, loss.cls_loss_rt=0.2703, loss.loc_loss=1.065, loss.loc_loss_rt=0.8064, loss.loc_elem=[0.03047, 0.03174, 0.08311, 0.03612, 0.0613, 0.06183, 0.09862], loss.cls_pos_rt=0.1254, loss.cls_neg_rt=0.1449, loss.dir_rt=0.6028, rpn_acc=0.9977, misc.num_vox=64808, misc.num_pos=36, misc.num_neg=42461, misc.num_anchors=42500, misc.mem_usage=8.4
- 55%|██████████████████████████████████████████████████████                                            | 2500/4536 [07:09<05:38,  6.02it/s]runtime.step=2501, runtime.steptime=0.171, loss.cls_loss=9.257, loss.cls_loss_rt=0.3125, loss.loc_loss=1.008, loss.loc_loss_rt=0.7742, loss.loc_elem=[0.04237, 0.04101, 0.0713, 0.03927, 0.05137, 0.04175, 0.1], loss.cls_pos_rt=0.1044, loss.cls_neg_rt=0.2081, loss.dir_rt=0.6075, rpn_acc=0.9981, misc.num_vox=53724, misc.num_pos=51, misc.num_neg=42426, misc.num_anchors=42500, misc.mem_usage=8.4
- 66%|████████████████████████████████████████████████████████████████▊                                 | 3000/4536 [08:35<04:13,  6.07it/s]runtime.step=3001, runtime.steptime=0.1719, loss.cls_loss=7.767, loss.cls_loss_rt=0.3025, loss.loc_loss=0.9663, loss.loc_loss_rt=0.6456, loss.loc_elem=[0.02231, 0.01463, 0.08454, 0.0222, 0.04356, 0.05431, 0.08126], loss.cls_pos_rt=0.1001, loss.cls_neg_rt=0.2025, loss.dir_rt=0.4625, rpn_acc=0.9983, misc.num_vox=61223, misc.num_pos=22, misc.num_neg=42474, misc.num_anchors=42500, misc.mem_usage=8.4
- 77%|███████████████████████████████████████████████████████████████████████████▌                      | 3500/4536 [10:01<03:03,  5.66it/s]runtime.step=3501, runtime.steptime=0.1712, loss.cls_loss=6.701, loss.cls_loss_rt=0.4027, loss.loc_loss=0.9273, loss.loc_loss_rt=0.7577, loss.loc_elem=[0.07094, 0.0513, 0.0698, 0.04672, 0.0261, 0.05023, 0.06379], loss.cls_pos_rt=0.233, loss.cls_neg_rt=0.1697, loss.dir_rt=0.4672, rpn_acc=0.9985, misc.num_vox=66447, misc.num_pos=27, misc.num_neg=42459, misc.num_anchors=42500, misc.mem_usage=8.4
- 88%|██████████████████████████████████████████████████████████████████████████████████████▍           | 4000/4536 [11:27<01:32,  5.81it/s]runtime.step=4001, runtime.steptime=0.1713, loss.cls_loss=5.9, loss.cls_loss_rt=0.2441, loss.loc_loss=0.8954, loss.loc_loss_rt=0.4137, loss.loc_elem=[0.01381, 0.00727, 0.0824, 0.02992, 0.02476, 0.03382, 0.01488], loss.cls_pos_rt=0.03888, loss.cls_neg_rt=0.2053, loss.dir_rt=0.3046, rpn_acc=0.9986, misc.num_vox=58060, misc.num_pos=30, misc.num_neg=42453, misc.num_anchors=42500, misc.mem_usage=8.4
- 99%|█████████████████████████████████████████████████████████████████████████████████████████████████▏| 4500/4536 [12:52<00:06,  5.79it/s]runtime.step=4501, runtime.steptime=0.1713, loss.cls_loss=5.276, loss.cls_loss_rt=0.3105, loss.loc_loss=0.8671, loss.loc_loss_rt=0.6804, loss.loc_elem=[0.0312, 0.0287, 0.06652, 0.03547, 0.04678, 0.03798, 0.09353], loss.cls_pos_rt=0.1101, loss.cls_neg_rt=0.2005, loss.dir_rt=0.4698, rpn_acc=0.9987, misc.num_vox=53998, misc.num_pos=37, misc.num_neg=42450, misc.num_anchors=42500, misc.mem_usage=8.4
-100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 4536/4536 [12:58<00:00,  5.82it/s]
-  0%|                                                                                                             | 0/4536 [00:00<?, ?it/s]runtime.step=4537, runtime.steptime=0.1714, loss.cls_loss=0.2869, loss.cls_loss_rt=0.2869, loss.loc_loss=0.7262, loss.loc_loss_rt=0.7262, loss.loc_elem=[0.068, 0.04982, 0.04493, 0.01701, 0.0627, 0.02903, 0.0916], loss.cls_pos_rt=0.1657, loss.cls_neg_rt=0.1212, loss.dir_rt=0.3752, rpn_acc=0.9997, misc.num_vox=54355, misc.num_pos=37, misc.num_neg=42440, misc.num_anchors=42500, misc.mem_usage=8.5
- 11%|██████████▉                                                                                        | 500/4536 [01:22<10:49,  6.21it/s]runtime.step=5037, runtime.steptime=0.1642, loss.cls_loss=0.2678, loss.cls_loss_rt=0.2769, loss.loc_loss=0.6074, loss.loc_loss_rt=0.5903, loss.loc_elem=[0.02, 0.01402, 0.03394, 0.0282, 0.07201, 0.04842, 0.07858], loss.cls_pos_rt=0.08969, loss.cls_neg_rt=0.1872, loss.dir_rt=0.4445, rpn_acc=0.9996, misc.num_vox=66340, misc.num_pos=1, misc.num_neg=42497, misc.num_anchors=42500, misc.mem_usage=8.5
- 22%|█████████████████████▌                                                                            | 1000/4536 [02:43<09:37,  6.13it/s]runtime.step=5537, runtime.steptime=0.1633, loss.cls_loss=0.2676, loss.cls_loss_rt=0.4311, loss.loc_loss=0.605, loss.loc_loss_rt=1.035, loss.loc_elem=[0.04313, 0.04431, 0.1124, 0.03555, 0.04335, 0.05381, 0.185], loss.cls_pos_rt=0.1664, loss.cls_neg_rt=0.2647, loss.dir_rt=0.4824, rpn_acc=0.9996, misc.num_vox=65594, misc.num_pos=31, misc.num_neg=42455, misc.num_anchors=42500, misc.mem_usage=8.5
- 33%|████████████████████████████████▍                                                                 | 1500/4536 [04:05<08:32,  5.93it/s]runtime.step=6037, runtime.steptime=0.1639, loss.cls_loss=0.2656, loss.cls_loss_rt=0.2154, loss.loc_loss=0.5963, loss.loc_loss_rt=0.5037, loss.loc_elem=[0.02287, 0.01543, 0.05514, 0.03085, 0.04394, 0.04307, 0.04054], loss.cls_pos_rt=0.0565, loss.cls_neg_rt=0.1589, loss.dir_rt=0.3508, rpn_acc=0.9996, misc.num_vox=48163, misc.num_pos=22, misc.num_neg=42460, misc.num_anchors=42500, misc.mem_usage=8.5
- 44%|███████████████████████████████████████████▏                                                      | 2000/4536 [05:28<07:08,  5.92it/s]runtime.step=6537, runtime.steptime=0.1653, loss.cls_loss=0.2628, loss.cls_loss_rt=0.3504, loss.loc_loss=0.5884, loss.loc_loss_rt=0.8105, loss.loc_elem=[0.04258, 0.03559, 0.06859, 0.02512, 0.04107, 0.03451, 0.1578], loss.cls_pos_rt=0.143, loss.cls_neg_rt=0.2074, loss.dir_rt=0.5257, rpn_acc=0.9996, misc.num_vox=63882, misc.num_pos=34, misc.num_neg=42446, misc.num_anchors=42500, misc.mem_usage=8.5
- 55%|██████████████████████████████████████████████████████                                            | 2500/4536 [06:50<05:37,  6.03it/s]runtime.step=7037, runtime.steptime=0.1645, loss.cls_loss=0.2596, loss.cls_loss_rt=0.2584, loss.loc_loss=0.5825, loss.loc_loss_rt=0.8529, loss.loc_elem=[0.02935, 0.0349, 0.08337, 0.05021, 0.04427, 0.04285, 0.1415], loss.cls_pos_rt=0.1356, loss.cls_neg_rt=0.1228, loss.dir_rt=0.406, rpn_acc=0.9996, misc.num_vox=66109, misc.num_pos=3, misc.num_neg=42496, misc.num_anchors=42500, misc.mem_usage=8.5
- 66%|████████████████████████████████████████████████████████████████▊                                 | 3000/4536 [08:12<04:16,  5.99it/s]runtime.step=7537, runtime.steptime=0.164, loss.cls_loss=0.2568, loss.cls_loss_rt=0.1693, loss.loc_loss=0.5791, loss.loc_loss_rt=0.3836, loss.loc_elem=[0.02072, 0.005741, 0.05447, 0.02363, 0.03004, 0.03321, 0.02397], loss.cls_pos_rt=0.06699, loss.cls_neg_rt=0.1023, loss.dir_rt=0.367, rpn_acc=0.9996, misc.num_vox=62108, misc.num_pos=2, misc.num_neg=42498, misc.num_anchors=42500, misc.mem_usage=8.5
- 77%|███████████████████████████████████████████████████████████████████████████▌                      | 3500/4536 [09:34<02:46,  6.21it/s]runtime.step=8037, runtime.steptime=0.1641, loss.cls_loss=0.2539, loss.cls_loss_rt=0.1356, loss.loc_loss=0.5739, loss.loc_loss_rt=0.4222, loss.loc_elem=[0.01921, 0.006765, 0.04122, 0.02626, 0.03572, 0.03593, 0.04598], loss.cls_pos_rt=0.05459, loss.cls_neg_rt=0.08097, loss.dir_rt=0.3634, rpn_acc=0.9996, misc.num_vox=42843, misc.num_pos=51, misc.num_neg=42439, misc.num_anchors=42500, misc.mem_usage=8.5
- 88%|██████████████████████████████████████████████████████████████████████████████████████▍           | 4000/4536 [10:56<01:30,  5.94it/s]runtime.step=8537, runtime.steptime=0.1642, loss.cls_loss=0.2521, loss.cls_loss_rt=0.2084, loss.loc_loss=0.5707, loss.loc_loss_rt=0.4433, loss.loc_elem=[0.01326, 0.01776, 0.05171, 0.01869, 0.02435, 0.05397, 0.04192], loss.cls_pos_rt=0.05447, loss.cls_neg_rt=0.154, loss.dir_rt=0.3313, rpn_acc=0.9996, misc.num_vox=52308, misc.num_pos=34, misc.num_neg=42455, misc.num_anchors=42500, misc.mem_usage=8.5
- 99%|█████████████████████████████████████████████████████████████████████████████████████████████████▏| 4500/4536 [12:18<00:05,  6.15it/s]runtime.step=9037, runtime.steptime=0.1646, loss.cls_loss=0.2499, loss.cls_loss_rt=0.237, loss.loc_loss=0.5662, loss.loc_loss_rt=0.6582, loss.loc_elem=[0.03093, 0.02857, 0.04505, 0.03337, 0.03395, 0.04733, 0.1099], loss.cls_pos_rt=0.1083, loss.cls_neg_rt=0.1288, loss.dir_rt=0.4132, rpn_acc=0.9996, misc.num_vox=60074, misc.num_pos=30, misc.num_neg=42463, misc.num_anchors=42500, misc.mem_usage=8.5
-100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 4536/4536 [12:25<00:00,  6.09it/s]
+  0%|                                                                                                          | 0/4536 [00:00<?, ?it/s]runtime.step=1, runtime.steptime=1.774, loss.cls_loss=2.267e+03, loss.cls_loss_rt=2.267e+03, loss.loc_loss=5.617, loss.loc_loss_rt=5.617, loss.loc_elem=[0.3017, 0.6744, 0.3378, 0.2987, 0.3497, 0.4778, 0.3684], loss.cls_pos_rt=1.972e+03, loss.cls_neg_rt=294.3, loss.dir_rt=0.7562, rpn_acc=0.001418, misc.num_vox=54018, misc.num_pos=42, misc.num_neg=42446, misc.num_anchors=42500, misc.mem_usage=9.6
+ 11%|██████████▌                                                                                     | 500/4536 [01:23<11:00,  6.11it/s]runtime.step=501, runtime.steptime=0.1645, loss.cls_loss=30.25, loss.cls_loss_rt=0.4361, loss.loc_loss=1.509, loss.loc_loss_rt=1.228, loss.loc_elem=[0.05476, 0.03012, 0.301, 0.03656, 0.06314, 0.0588, 0.06946], loss.cls_pos_rt=0.1433, loss.cls_neg_rt=0.2927, loss.dir_rt=0.697, rpn_acc=0.9925, misc.num_vox=54097, misc.num_pos=19, misc.num_neg=42472, misc.num_anchors=42500, misc.mem_usage=9.6
+ 22%|████████████████████▉                                                                          | 1000/4536 [02:45<09:41,  6.08it/s]runtime.step=1001, runtime.steptime=0.1637, loss.cls_loss=15.36, loss.cls_loss_rt=0.4246, loss.loc_loss=1.314, loss.loc_loss_rt=1.115, loss.loc_elem=[0.07064, 0.0354, 0.1476, 0.03315, 0.09159, 0.07514, 0.1041], loss.cls_pos_rt=0.1672, loss.cls_neg_rt=0.2574, loss.dir_rt=0.6576, rpn_acc=0.9959, misc.num_vox=59649, misc.num_pos=7, misc.num_neg=42492, misc.num_anchors=42500, misc.mem_usage=9.6
+ 33%|███████████████████████████████▍                                                               | 1500/4536 [04:08<08:36,  5.88it/s]runtime.step=1501, runtime.steptime=0.1659, loss.cls_loss=10.38, loss.cls_loss_rt=0.3173, loss.loc_loss=1.182, loss.loc_loss_rt=0.7001, loss.loc_elem=[0.04023, 0.02289, 0.07464, 0.03792, 0.06125, 0.05472, 0.05839], loss.cls_pos_rt=0.1158, loss.cls_neg_rt=0.2015, loss.dir_rt=0.6237, rpn_acc=0.9971, misc.num_vox=58507, misc.num_pos=24, misc.num_neg=42442, misc.num_anchors=42500, misc.mem_usage=9.7
+ 44%|█████████████████████████████████████████▉                                                     | 2000/4536 [05:33<06:45,  6.26it/s]runtime.step=2001, runtime.steptime=0.1692, loss.cls_loss=7.876, loss.cls_loss_rt=0.2971, loss.loc_loss=1.103, loss.loc_loss_rt=0.616, loss.loc_elem=[0.03611, 0.03427, 0.06483, 0.04071, 0.04986, 0.03942, 0.0428], loss.cls_pos_rt=0.05081, loss.cls_neg_rt=0.2463, loss.dir_rt=0.5229, rpn_acc=0.9977, misc.num_vox=55859, misc.num_pos=35, misc.num_neg=42454, misc.num_anchors=42500, misc.mem_usage=10.0
+ 55%|████████████████████████████████████████████████████▎                                          | 2500/4536 [06:57<05:26,  6.23it/s]runtime.step=2501, runtime.steptime=0.1676, loss.cls_loss=6.37, loss.cls_loss_rt=0.3774, loss.loc_loss=1.044, loss.loc_loss_rt=0.9655, loss.loc_elem=[0.07877, 0.01731, 0.07576, 0.04563, 0.1085, 0.07468, 0.08211], loss.cls_pos_rt=0.206, loss.cls_neg_rt=0.1714, loss.dir_rt=0.5981, rpn_acc=0.9981, misc.num_vox=53525, misc.num_pos=4, misc.num_neg=42495, misc.num_anchors=42500, misc.mem_usage=10.0
+ 66%|██████████████████████████████████████████████████████████████▊                                | 3000/4536 [08:21<04:12,  6.09it/s]runtime.step=3001, runtime.steptime=0.1679, loss.cls_loss=5.363, loss.cls_loss_rt=0.2639, loss.loc_loss=0.9968, loss.loc_loss_rt=0.6028, loss.loc_elem=[0.03035, 0.01486, 0.05148, 0.02928, 0.037, 0.04461, 0.0938], loss.cls_pos_rt=0.02319, loss.cls_neg_rt=0.2407, loss.dir_rt=0.4474, rpn_acc=0.9983, misc.num_vox=55087, misc.num_pos=15, misc.num_neg=42479, misc.num_anchors=42500, misc.mem_usage=10.1
+ 77%|█████████████████████████████████████████████████████████████████████████▎                     | 3500/4536 [09:43<02:49,  6.13it/s]runtime.step=3501, runtime.steptime=0.1643, loss.cls_loss=4.641, loss.cls_loss_rt=0.3222, loss.loc_loss=0.9556, loss.loc_loss_rt=0.8375, loss.loc_elem=[0.04297, 0.02896, 0.1211, 0.02913, 0.05736, 0.05184, 0.08745], loss.cls_pos_rt=0.1695, loss.cls_neg_rt=0.1527, loss.dir_rt=0.5131, rpn_acc=0.9985, misc.num_vox=64895, misc.num_pos=28, misc.num_neg=42442, misc.num_anchors=42500, misc.mem_usage=10.1
+ 88%|███████████████████████████████████████████████████████████████████████████████████▊           | 4000/4536 [11:05<01:23,  6.41it/s]runtime.step=4001, runtime.steptime=0.1642, loss.cls_loss=4.097, loss.cls_loss_rt=0.3147, loss.loc_loss=0.9226, loss.loc_loss_rt=0.8932, loss.loc_elem=[0.05447, 0.07023, 0.06035, 0.05245, 0.07753, 0.05122, 0.08033], loss.cls_pos_rt=0.1319, loss.cls_neg_rt=0.1827, loss.dir_rt=0.4609, rpn_acc=0.9986, misc.num_vox=64483, misc.num_pos=2, misc.num_neg=42496, misc.num_anchors=42500, misc.mem_usage=10.1
+ 99%|██████████████████████████████████████████████████████████████████████████████████████████████▏| 4500/4536 [12:27<00:05,  6.20it/s]runtime.step=4501, runtime.steptime=0.1638, loss.cls_loss=3.674, loss.cls_loss_rt=0.2707, loss.loc_loss=0.8937, loss.loc_loss_rt=0.6288, loss.loc_elem=[0.02575, 0.0212, 0.07113, 0.03776, 0.04004, 0.05195, 0.06658], loss.cls_pos_rt=0.04601, loss.cls_neg_rt=0.2247, loss.dir_rt=0.5356, rpn_acc=0.9987, misc.num_vox=48527, misc.num_pos=37, misc.num_neg=42449, misc.num_anchors=42500, misc.mem_usage=10.1
+100%|███████████████████████████████████████████████████████████████████████████████████████████████| 4536/4536 [12:32<00:00,  6.02it/s]
+  0%|                                                                                                          | 0/4536 [00:00<?, ?it/s]runtime.step=4537, runtime.steptime=0.1624, loss.cls_loss=0.3998, loss.cls_loss_rt=0.3998, loss.loc_loss=0.997, loss.loc_loss_rt=0.997, loss.loc_elem=[0.02445, 0.03838, 0.1069, 0.05778, 0.05355, 0.05818, 0.1592], loss.cls_pos_rt=0.1056, loss.cls_neg_rt=0.2942, loss.dir_rt=0.5882, rpn_acc=0.9996, misc.num_vox=72371, misc.num_pos=27, misc.num_neg=42462, misc.num_anchors=42500, misc.mem_usage=10.2
+ 11%|██████████▌                                                                                     | 500/4536 [01:22<11:09,  6.03it/s]runtime.step=5037, runtime.steptime=0.164, loss.cls_loss=0.2738, loss.cls_loss_rt=0.17, loss.loc_loss=0.6262, loss.loc_loss_rt=0.4047, loss.loc_elem=[0.02263, 0.007178, 0.06015, 0.01465, 0.04021, 0.03413, 0.0234], loss.cls_pos_rt=0.05518, loss.cls_neg_rt=0.1148, loss.dir_rt=0.3615, rpn_acc=0.9996, misc.num_vox=48597, misc.num_pos=36, misc.num_neg=42457, misc.num_anchors=42500, misc.mem_usage=10.1
+ 22%|████████████████████▉                                                                          | 1000/4536 [02:43<09:34,  6.16it/s]runtime.step=5537, runtime.steptime=0.1639, loss.cls_loss=0.2678, loss.cls_loss_rt=0.2662, loss.loc_loss=0.6129, loss.loc_loss_rt=0.7101, loss.loc_elem=[0.02553, 0.01822, 0.05372, 0.03309, 0.06495, 0.06267, 0.09686], loss.cls_pos_rt=0.1294, loss.cls_neg_rt=0.1368, loss.dir_rt=0.3516, rpn_acc=0.9996, misc.num_vox=64036, misc.num_pos=21, misc.num_neg=42470, misc.num_anchors=42500, misc.mem_usage=10.2
+ 33%|███████████████████████████████▍                                                               | 1500/4536 [04:06<08:07,  6.23it/s]runtime.step=6037, runtime.steptime=0.1645, loss.cls_loss=0.2647, loss.cls_loss_rt=0.2206, loss.loc_loss=0.6071, loss.loc_loss_rt=0.4328, loss.loc_elem=[0.02185, 0.0164, 0.0693, 0.0182, 0.02784, 0.03426, 0.02857], loss.cls_pos_rt=0.03518, loss.cls_neg_rt=0.1854, loss.dir_rt=0.4609, rpn_acc=0.9996, misc.num_vox=53228, misc.num_pos=12, misc.num_neg=42485, misc.num_anchors=42500, misc.mem_usage=10.1
+ 44%|█████████████████████████████████████████▉                                                     | 2000/4536 [05:29<06:42,  6.31it/s]runtime.step=6537, runtime.steptime=0.1667, loss.cls_loss=0.262, loss.cls_loss_rt=0.1998, loss.loc_loss=0.5985, loss.loc_loss_rt=0.5681, loss.loc_elem=[0.01808, 0.02245, 0.0692, 0.0347, 0.035, 0.04877, 0.05586], loss.cls_pos_rt=0.04008, loss.cls_neg_rt=0.1597, loss.dir_rt=0.4178, rpn_acc=0.9996, misc.num_vox=57260, misc.num_pos=12, misc.num_neg=42486, misc.num_anchors=42500, misc.mem_usage=10.2
+ 55%|████████████████████████████████████████████████████▎                                          | 2500/4536 [06:51<05:30,  6.16it/s]runtime.step=7037, runtime.steptime=0.1632, loss.cls_loss=0.2586, loss.cls_loss_rt=0.186, loss.loc_loss=0.5916, loss.loc_loss_rt=0.3269, loss.loc_elem=[0.01398, 0.008011, 0.02977, 0.0223, 0.03461, 0.04477, 0.00998], loss.cls_pos_rt=0.04884, loss.cls_neg_rt=0.1371, loss.dir_rt=0.3564, rpn_acc=0.9996, misc.num_vox=68126, misc.num_pos=26, misc.num_neg=42458, misc.num_anchors=42500, misc.mem_usage=10.1
+ 66%|██████████████████████████████████████████████████████████████▊                                | 3000/4536 [08:12<04:05,  6.26it/s]runtime.step=7537, runtime.steptime=0.1635, loss.cls_loss=0.2557, loss.cls_loss_rt=0.1769, loss.loc_loss=0.5852, loss.loc_loss_rt=0.4428, loss.loc_elem=[0.01538, 0.007181, 0.04132, 0.03493, 0.04246, 0.04401, 0.03612], loss.cls_pos_rt=0.03529, loss.cls_neg_rt=0.1416, loss.dir_rt=0.4446, rpn_acc=0.9996, misc.num_vox=51415, misc.num_pos=35, misc.num_neg=42447, misc.num_anchors=42500, misc.mem_usage=10.1
+ 77%|█████████████████████████████████████████████████████████████████████████▎                     | 3500/4536 [09:34<02:46,  6.21it/s]runtime.step=8037, runtime.steptime=0.1639, loss.cls_loss=0.2529, loss.cls_loss_rt=0.2021, loss.loc_loss=0.5789, loss.loc_loss_rt=0.5253, loss.loc_elem=[0.015, 0.01228, 0.04775, 0.03551, 0.02917, 0.05081, 0.07213], loss.cls_pos_rt=0.06818, loss.cls_neg_rt=0.1339, loss.dir_rt=0.3959, rpn_acc=0.9996, misc.num_vox=57568, misc.num_pos=34, misc.num_neg=42447, misc.num_anchors=42500, misc.mem_usage=10.1
+ 88%|███████████████████████████████████████████████████████████████████████████████████▊           | 4000/4536 [10:56<01:28,  6.08it/s]runtime.step=8537, runtime.steptime=0.1634, loss.cls_loss=0.2507, loss.cls_loss_rt=0.2213, loss.loc_loss=0.5735, loss.loc_loss_rt=0.4499, loss.loc_elem=[0.0129, 0.01482, 0.05323, 0.02525, 0.02996, 0.04529, 0.04347], loss.cls_pos_rt=0.03973, loss.cls_neg_rt=0.1815, loss.dir_rt=0.3388, rpn_acc=0.9996, misc.num_vox=62759, misc.num_pos=23, misc.num_neg=42461, misc.num_anchors=42500, misc.mem_usage=10.1
+ 99%|██████████████████████████████████████████████████████████████████████████████████████████████▏| 4500/4536 [12:18<00:05,  6.14it/s]runtime.step=9037, runtime.steptime=0.1636, loss.cls_loss=0.2492, loss.cls_loss_rt=0.1398, loss.loc_loss=0.569, loss.loc_loss_rt=0.3695, loss.loc_elem=[0.02096, 0.004822, 0.0517, 0.01755, 0.03046, 0.03499, 0.02429], loss.cls_pos_rt=0.0398, loss.cls_neg_rt=0.1, loss.dir_rt=0.4123, rpn_acc=0.9996, misc.num_vox=58586, misc.num_pos=33, misc.num_neg=42460, misc.num_anchors=42500, misc.mem_usage=10.1
+100%|███████████████████████████████████████████████████████████████████████████████████████████████| 4536/4536 [12:24<00:00,  6.09it/s]
 #################################
 # EVAL
 #################################
 generating eval detections
-100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 2268/2268 [01:03<00:00, 35.66it/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████| 2268/2268 [00:56<00:00, 40.30it/s]
 
 building validation dataframe to write val preds .csv file . . . 
 
-100%|█████████████████████████████████████████████████████████████████████████████████████████████████| 4535/4535 [00:14<00:00, 318.49it/s]
+100%|██████████████████████████████████████████████████████████████████████████████████████████████| 4536/4536 [00:16<00:00, 275.96it/s]
 
 writing val preds to .csv . . .
 starting evaluation on predictions . . .
 preparing pred_data list ..
-100%|██████████████████████████████████████████████████████████████████████████████████████████████████| 4535/4535 [01:08<00:00, 66.11it/s]
+100%|███████████████████████████████████████████████████████████████████████████████████████████████| 4536/4536 [01:13<00:00, 61.97it/s]
 preparing gt_data list . . .
-100%|███████████████████████████████████████████████████████████████████████████████████████████████| 4536/4536 [00:00<00:00, 20268.77it/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████| 4536/4536 [00:00<00:00, 23258.45it/s]
 
 gt_data: 
 type(gt_data) = <class 'list'>
-len(gt_data) = 120094
+len(gt_data) = 116569
 gt_data[0]: 
-{'sample_token': 'e76171b1f8c7bd4b5dc6b3cab99362fe08f96e6512a03bac13fffa7859e20664',
- 'translation': [1697.444957265385, 1278.2558224561285, -20.225887789081007],
- 'size': [1.819, 4.611, 1.428],
- 'rotation': [-0.944493725231142, 0, 0, 0.32852945529891237],
+{'sample_token': 'b98a05255ba2632e957884758cb31f0e6fcc8d3cd6ee76b6d0ba55b72f08fc54',
+ 'translation': [1134.216191599088, 1650.4749269743418, -23.38887732990988],
+ 'size': [1.889, 4.852, 1.829],
+ 'rotation': [0.27834486968982886, 0, 0, 0.9604811989400689],
  'name': 'car'}
 
 predictions: 
 type(predictions) = <class 'list'>
-len(predictions) = 750323
+len(predictions) = 798085
 predictions[0]: 
-{'sample_token': 'e76171b1f8c7bd4b5dc6b3cab99362fe08f96e6512a03bac13fffa7859e20664',
- 'translation': [1657.419199147462, 1309.6733012153745, -19.97634450758666],
- 'size': [1.9353281259536743, 4.8796305656433105, 1.6477155685424805],
- 'rotation': [0.9554752236704531,
-              0.017309113125511977,
-              -0.017992697694718212,
-              -0.29401318743276117],
+{'sample_token': 'b98a05255ba2632e957884758cb31f0e6fcc8d3cd6ee76b6d0ba55b72f08fc54',
+ 'translation': [1172.7271331073043, 1611.8521515827974, -23.599379032777147],
+ 'size': [1.893123745918274, 4.577627658843994, 1.6403560638427734],
+ 'rotation': [0.9548620234606482,
+              -0.007522147587162846,
+              -0.0075918341500775845,
+              -0.29685736895443826],
  'name': 'car',
- 'score': 0.8394928574562073}
+ 'score': 0.8477947115898132}
 
 gt_by_class_name.keys(): 
-dict_keys(['car', 'truck', 'motorcycle', 'other_vehicle', 'bus', 'pedestrian', 'bicycle', 'emergency_vehicle', 'animal'])
+dict_keys(['car', 'other_vehicle', 'pedestrian', 'truck', 'bus', 'bicycle', 'motorcycle', 'animal'])
 
 pred_by_class_name.keys(): 
-dict_keys(['car', 'truck', 'bus', 'pedestrian', 'bicycle', 'other_vehicle', 'animal', 'motorcycle'])
+dict_keys(['car', 'other_vehicle', 'bicycle', 'pedestrian', 'bus', 'truck', 'animal', 'emergency_vehicle', 'motorcycle'])
 
 entering save_ap, calling get_average_precisions with iou_threshold = 0.5
 entering save_ap, calling get_average_precisions with iou_threshold = 0.8
 
-get_average_precisions with iou_threshold = 0.5 took 315.78 seconds
+get_average_precisions with iou_threshold = 0.8 took 375.10 seconds
 
 type(metric) = <class 'dict'>
 len(metric) = 9
 {'animal': 0.0,
- 'bicycle': 0.03795963478795819,
- 'bus': 0.022052207902360683,
- 'car': 0.3860812103690776,
+ 'bicycle': 2.5486148278410685e-05,
+ 'bus': 0.0,
+ 'car': 0.005511848229603134,
  'emergency_vehicle': 0.0,
  'motorcycle': 0.0,
- 'other_vehicle': 0.16591577399439783,
- 'pedestrian': 0.00504275031931053,
- 'truck': 0.0007290509401061923}
-joined save_ap process
-
-get_average_precisions with iou_threshold = 0.8 took 317.45 seconds
-
-type(metric) = <class 'dict'>
-len(metric) = 9
-{'animal': 0.0,
- 'bicycle': 9.93683428251457e-06,
- 'bus': 5.020433162973301e-06,
- 'car': 0.0002904802684057955,
- 'emergency_vehicle': 0.0,
- 'motorcycle': 0.0,
- 'other_vehicle': 0.00038338655121012067,
- 'pedestrian': 4.923613460597909e-09,
+ 'other_vehicle': 0.0010731557066146489,
+ 'pedestrian': 7.462474499232141e-09,
  'truck': 0.0}
+
+get_average_precisions with iou_threshold = 0.5 took 376.71 seconds
+
+type(metric) = <class 'dict'>
+len(metric) = 9
+{'animal': 0.0,
+ 'bicycle': 0.015809394244331157,
+ 'bus': 0.011096837231872308,
+ 'car': 0.4755559820082785,
+ 'emergency_vehicle': 0.0,
+ 'motorcycle': 0.0,
+ 'other_vehicle': 0.18010770739142867,
+ 'pedestrian': 0.0006828997922472983,
+ 'truck': 0.00045885799248108805}
 joined save_ap process
-eval_main time taken: 317.84941053390503 seconds
+joined save_ap process
+eval_main time taken: 377.066205739975 seconds
 
 threshold: 0.5
 {
   "animal": 0.0,
-  "bicycle": 0.03795963478795819,
-  "bus": 0.022052207902360683,
-  "car": 0.3860812103690776,
+  "bicycle": 0.015809394244331157,
+  "bus": 0.011096837231872308,
+  "car": 0.4755559820082785,
   "emergency_vehicle": 0.0,
   "motorcycle": 0.0,
-  "other_vehicle": 0.16591577399439783,
-  "pedestrian": 0.00504275031931053,
-  "truck": 0.0007290509401061923
+  "other_vehicle": 0.18010770739142867,
+  "pedestrian": 0.0006828997922472983,
+  "truck": 0.00045885799248108805
 }
 
 threshold: 0.8
 {
   "animal": 0.0,
-  "bicycle": 9.93683428251457e-06,
-  "bus": 5.020433162973301e-06,
-  "car": 0.0002904802684057955,
+  "bicycle": 2.5486148278410685e-05,
+  "bus": 0.0,
+  "car": 0.005511848229603134,
   "emergency_vehicle": 0.0,
   "motorcycle": 0.0,
-  "other_vehicle": 0.00038338655121012067,
-  "pedestrian": 4.923613460597909e-09,
+  "other_vehicle": 0.0010731557066146489,
+  "pedestrian": 7.462474499232141e-09,
   "truck": 0.0
 }
 
 threshold: overall
 {
   "animal": 0.0,
-  "bicycle": 0.018984785811120352,
-  "bus": 0.011028614167761828,
-  "car": 0.1931858453187417,
+  "bicycle": 0.007917440196304784,
+  "bus": 0.005548418615936154,
+  "car": 0.24053391511894082,
   "emergency_vehicle": 0.0,
   "motorcycle": 0.0,
-  "other_vehicle": 0.08314958027280397,
-  "pedestrian": 0.002521377621461995,
-  "truck": 0.00036452547005309615
+  "other_vehicle": 0.09059043154902166,
+  "pedestrian": 0.00034145362736089877,
+  "truck": 0.00022942899624054403
 }
 type(ap_metrics): 
 <class 'dict'>
 ap_metrics: 
-{'animal': 0.0, 'bicycle': 0.018984785811120352, 'bus': 0.011028614167761828, 'car': 0.1931858453187417, 'emergency_vehicle': 0.0, 'motorcycle': 0.0, 'other_vehicle': 0.08314958027280397, 'pedestrian': 0.002521377621461995, 'truck': 0.00036452547005309615}
+{'animal': 0.0, 'bicycle': 0.007917440196304784, 'bus': 0.005548418615936154, 'car': 0.24053391511894082, 'emergency_vehicle': 0.0, 'motorcycle': 0.0, 'other_vehicle': 0.09059043154902166, 'pedestrian': 0.00034145362736089877, 'truck': 0.00022942899624054403}
 
-warning, overall car mAP = 0.1931858453187417 is below an acceptable level, result is suspect
+overall car mAP = 0.24053391511894082 is at least decent
 
 
 threshold: mAP
-0.03435941429577144
+0.03835123201153388
 
 train/val complete
 beginning testing, A.K.A. making submission . . .
@@ -212,7 +212,7 @@ preprocess {
 219744 sample_data,
 0 sample_annotation,
 1 map,
-Done loading in 1.4 seconds.
+Done loading in 1.0 seconds.
 ======
 Reverse indexing ...
 Done reverse indexing in 0.4 seconds.
@@ -221,16 +221,16 @@ in MyLyftDataset init
 
 performing test detections . . . 
 
-100%|████████████████████████████████████████████████████████████████████████████████████████████████| 13734/13734 [06:15<00:00, 36.59it/s]
-writing /home/cdahms/workspace-av/lyft-3d-det-second-pointpillars/results/test_results.pkl
+100%|█████████████████████████████████████████████████████████████████████████████████████████████| 13734/13734 [05:31<00:00, 41.45it/s]
+writing /home/cdahms/reporsitories/lyft-3d-det-second-pointpillars/results/test_results.pkl
 
 building dataframe to write .csv file . . . 
 
-100%|███████████████████████████████████████████████████████████████████████████████████████████████| 27468/27468 [01:27<00:00, 314.69it/s]
+100%|████████████████████████████████████████████████████████████████████████████████████████████| 27468/27468 [01:40<00:00, 272.09it/s]
 
 writing .csv file . . . 
 
-saved output .csv file to: /home/cdahms/workspace-av/lyft-3d-det-second-pointpillars/results/kaggle_sub.csv, this can be submitted to the 
+saved output .csv file to: /home/cdahms/reporsitories/lyft-3d-det-second-pointpillars/results/kaggle_sub.csv, this can be submitted to the 
 Kaggle competition at https://www.kaggle.com/c/3d-object-detection-for-autonomous-vehicles/submit
 
 
