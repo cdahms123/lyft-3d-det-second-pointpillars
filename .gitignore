@@ -7,6 +7,7 @@ scratchpad.py
 results
 results_old
 results_old2
+results_save
 
 # Byte-compiled / optimized / DLL files
 pretrained_models/

@@ -28,7 +28,7 @@ from lyft_dataset_sdk.utils.geometry_utils import quaternion_yaw
 # local imports
 import my_lyft_dataset
 from my_lyft_dataset import MyLyftDataset
-from models.voxelnet import VoxelNet
+from models.pointpillars import PointPillars
 from protos import pipeline_pb2
 from utils.log_tool import SimpleModelLog
 
@@ -60,7 +60,6 @@ OUTPUT_SUB_FILE_LOC = os.path.join(os.getcwd(), 'results', 'kaggle_sub.csv')
 TEST_BATCH_SIZE = 2
 PRED_THRESHOLD = 0.2
 
-USE_HALF = False
 OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.21    # 0.16 for 1/2, 0.21 for full
 MAKE_SUBMISSION = True
 
@@ -76,15 +75,15 @@ def main():
         print(termcolor.colored('\n' + 'GPU does not seem to be available, using CPU' + '\n', 'red'))
     # end if
 
-    # check if the results directory already exists, if so show an error and bail
-    if os.path.isdir(RESULTS_LOC):
-        print(termcolor.colored('RESULTS_LOC ' + str(RESULTS_LOC) + ' already exists !!', 'red'))
-        print(termcolor.colored('either delete this directory or move it somewhere else to save it before training again', 'red'))
-        print('')
-        quit()
-    # end if
+    # # check if the results directory already exists, if so show an error and bail
+    # if os.path.isdir(RESULTS_LOC):
+    #     print(termcolor.colored('RESULTS_LOC ' + str(RESULTS_LOC) + ' already exists !!', 'red'))
+    #     print(termcolor.colored('either delete this directory or move it somewhere else to save it before training again', 'red'))
+    #     print('')
+    #     quit()
+    # # end if
 
-    os.makedirs(RESULTS_LOC)
+    os.makedirs(RESULTS_LOC, exist_ok=True)
 
     # read in the config
     config = pipeline_pb2.TrainEvalPipelineConfig()
@@ -100,7 +99,7 @@ def main():
     train_cfg = config.train_config
 
     # instantiate the net
-    net = VoxelNet(model_cfg, MEASURE_TIME)
+    net = PointPillars(model_cfg, MEASURE_TIME)
     net = net.to(device)
     target_assigner = net.target_assigner
     voxel_generator = net.voxel_generator
@@ -144,11 +143,6 @@ def main():
     # end for
 
     assert len(trainFrameIds) + len(valFrameIds) == len(lyftTrainVal.sample)
-
-    if USE_HALF:
-        trainFrameIds = random.sample(trainFrameIds, k=round(len(trainFrameIds) * 0.5))
-        valFrameIds = random.sample(valFrameIds, k=round(len(valFrameIds) * 0.5))
-    # end if
 
     trainIdxToFrameIdDict = dict()
     for i, trainFrameId in enumerate(trainFrameIds):
