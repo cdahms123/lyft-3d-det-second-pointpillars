@@ -63,6 +63,8 @@ PRED_THRESHOLD = 0.2
 OVERALL_CAR_MAP_ACCEPTABLE_THRESH = 0.21    # 0.16 for 1/2, 0.21 for full
 MAKE_SUBMISSION = True
 
+# ToDo: move loss out of PointPillars class, move loss into separate file
+
 def main():
     np.set_printoptions(suppress=True)
 

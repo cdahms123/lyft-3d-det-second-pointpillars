@@ -305,6 +305,7 @@ class PointPillars(nn.Module):
         torch.cuda.synchronize()
         for name in names:
             self._time_dict[name] = time.time()
+    # end function
 
     def end_timer(self, name):
         if not self.measure_time:
@@ -318,11 +319,13 @@ class PointPillars(nn.Module):
             self._time_count_dict[name] += 1
             self._time_total_dict[name] += time_elapsed
         self._time_dict[name] = 0
+    # end function
 
     def clear_timer(self):
         self._time_count_dict.clear()
         self._time_dict.clear()
         self._time_total_dict.clear()
+    # end function
 
     @contextlib.contextmanager
     def profiler(self):
@@ -330,6 +333,7 @@ class PointPillars(nn.Module):
         self.measure_time = True
         yield
         self.measure_time = old_measure_time
+    # end function
 
     def get_avg_time_dict(self):
         ret = {}
@@ -337,15 +341,19 @@ class PointPillars(nn.Module):
             count = self._time_count_dict[name]
             ret[name] = val / max(1, count)
         return ret
+    # end function
 
     def update_global_step(self):
         self.global_step += 1
+    # end function
 
     def get_global_step(self):
         return int(self.global_step.cpu().numpy()[0])
+    # end function
 
     def clear_global_step(self):
         self.global_step.zero_()
+    # end function
 
     def loss(self, example, preds_dict):
         box_preds = preds_dict["box_preds"]
@@ -421,31 +429,7 @@ class PointPillars(nn.Module):
         if self._use_direction_classifier:
             res["dir_loss_reduced"] = dir_loss
         return res
-
-    def network_forward(self, voxels, num_points, coors, batch_size):
-        """this function is used for subclass.
-        you can add custom network architecture by subclass VoxelNet class
-        and override this function.
-        Returns:
-            preds_dict: {
-                box_preds: ...
-                cls_preds: ...
-                dir_cls_preds: ...
-            }
-        """
-        self.start_timer("voxel_feature_extractor")
-        voxel_features = self.voxel_feature_extractor(voxels, num_points,
-                                                      coors)
-        self.end_timer("voxel_feature_extractor")
-
-        self.start_timer("middle forward")
-        spatial_features = self.middle_feature_extractor(
-            voxel_features, coors, batch_size)
-        self.end_timer("middle forward")
-        self.start_timer("rpn forward")
-        preds_dict = self.rpn(spatial_features)
-        self.end_timer("rpn forward")
-        return preds_dict
+    # end function
 
     def forward(self, example):
         """module's forward should always accept dict and return loss.
@@ -467,11 +451,15 @@ class PointPillars(nn.Module):
             num_points = torch.cat(num_points_list, dim=0)
             coors = torch.cat(coors_list, dim=0)
         batch_anchors = example["anchors"]
+
+        # ToDo: what is batch_size_dev (i.e. how is this different from batch size ?? what does "dev" mean ??)
         batch_size_dev = batch_anchors.shape[0]
-        # features: [num_voxels, max_num_points_per_voxel, 7]
-        # num_points: [num_voxels]
-        # coors: [num_voxels, 4]
-        preds_dict = self.network_forward(voxels, num_points, coors, batch_size_dev)
+
+        voxel_features = self.voxel_feature_extractor(voxels, num_points, coors)
+        spatial_features = self.middle_feature_extractor(voxel_features, coors, batch_size_dev)
+        preds_dict = self.rpn(spatial_features)
+
+
         # need to check size.
         box_preds = preds_dict["box_preds"].view(batch_size_dev, -1, self._box_coder.code_size)
         err_msg = f"num_anchors={batch_anchors.shape[1]}, but num_output={box_preds.shape[1]}. please check size"
@@ -479,11 +467,12 @@ class PointPillars(nn.Module):
         if self.training:
             return self.loss(example, preds_dict)
         else:
-            self.start_timer("predict")
             with torch.no_grad():
                 res = self.predict(example, preds_dict)
-            self.end_timer("predict")
+            # end with
             return res
+        # end if
+    # end function
 
     def predict(self, example, preds_dict):
         """start with v1.6.0, this function don't contain any kitti-specific code.
@@ -1107,3 +1096,6 @@ def get_direction_target(anchors,
             dir_cls_targets, num_bins, dtype=anchors.dtype)
     return dir_cls_targets
 # end function
+
+
+
