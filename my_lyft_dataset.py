@@ -21,7 +21,6 @@ from torch.utils.data import Dataset
 # local imports
 from core import preprocess as prep
 from core import box_np_ops
-from protos import input_reader_pb2
 from utils.config_tool import get_downsample_factor
 
 class MyLyftDataset(Dataset):

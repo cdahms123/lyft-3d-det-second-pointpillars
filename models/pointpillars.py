@@ -9,8 +9,6 @@ from torch import nn
 from torch.nn import functional as F
 import pprint
 
-from protos import voxel_generator_pb2
-from protos import target_pb2
 from spconv.utils import VoxelGeneratorV2
 from core import region_similarity
 from core.box_coders import BevBoxCoderTorch, GroundBox3dCoderTorch
@@ -18,11 +16,9 @@ from core.target_assigner import TargetAssigner
 from core.anchor_generator import AnchorGeneratorStride, AnchorGeneratorRange
 # from builder import anchor_generator_builder
 # from builder import losses_builder
-from protos import second_pb2
 
 from core import losses
 from core.ghm_loss import GHMCLoss, GHMRLoss
-from protos import losses_pb2
 
 import torchplus
 from torchplus.nn.functional import one_hot

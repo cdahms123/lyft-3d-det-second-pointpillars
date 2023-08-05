@@ -1,12 +1,6 @@
 # config_tool.py
 
-# This file contains some config modification function.
-# some functions should be only used for KITTI dataset.
-
-from google.protobuf import text_format
-from protos import pipeline_pb2
 import numpy as np 
-
 
 def change_detection_range(model_config, new_range):
     assert len(new_range) == 4, "you must provide a list such as [-50, -50, 50, 50]"
@@ -48,15 +42,5 @@ def get_downsample_factor(model_config):
     return downsample_factor
 # end function
 
-if __name__ == "__main__":
-    config_path = "/home/yy/deeplearning/deeplearning/mypackages/second/configs/car.lite.1.config"
-    config = pipeline_pb2.TrainEvalPipelineConfig()
 
-    with open(config_path, "r") as f:
-        proto_str = f.read()
-        text_format.Merge(proto_str, config)
-    
-    change_detection_range(config, [-50, -50, 50, 50])
-    proto_str = text_format.MessageToString(config, indent=2)
-    print(proto_str)
-    
+
