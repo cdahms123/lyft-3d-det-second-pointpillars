@@ -35,16 +35,18 @@ def change_detection_range(model_config, new_range):
     old_post_range[:2] = new_range[:2]
     old_post_range[3:5] = new_range[2:]
     model_config.post_center_limit_range[:] = old_post_range
+# end function
 
 def get_downsample_factor(model_config):
-    downsample_factor = np.prod(model_config.rpn.layer_strides)
-    if len(model_config.rpn.upsample_strides) > 0:
-        downsample_factor /= model_config.rpn.upsample_strides[-1]
-    downsample_factor *= model_config.middle_feature_extractor.downsample_factor
+    downsample_factor = np.prod(model_config['rpn']['layer_strides'])
+    if len(model_config['rpn']['upsample_strides']) > 0:
+        downsample_factor /= model_config['rpn']['upsample_strides'][-1]
+    # end if
+    downsample_factor *= model_config['middle_feature_extractor']['downsample_factor']
     downsample_factor = int(downsample_factor)
     assert downsample_factor > 0
     return downsample_factor
-
+# end function
 
 if __name__ == "__main__":
     config_path = "/home/yy/deeplearning/deeplearning/mypackages/second/configs/car.lite.1.config"

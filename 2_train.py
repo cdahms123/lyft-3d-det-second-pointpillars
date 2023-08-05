@@ -180,14 +180,14 @@ def main():
 
     trainDataLoader = torch.utils.data.DataLoader(
         trainDataset,
-        batch_size=train_input_cfg.batch_size,
+        batch_size=train_input_cfg['batch_size'],
         shuffle=True,
         collate_fn=my_lyft_dataset.my_collate_fn,
         worker_init_fn=_worker_init_fn,
         drop_last=True)
     evalDataLoader = torch.utils.data.DataLoader(
         evalDataset,
-        batch_size=eval_input_cfg.batch_size,
+        batch_size=eval_input_cfg['batch_size'],
         shuffle=False,
         collate_fn=my_lyft_dataset.my_collate_fn)
 
@@ -199,7 +199,7 @@ def main():
     print('starting from step ' + str(net.get_global_step()) + '\n')
 
     t = time.time()
-    clear_metrics_every_epoch = train_cfg.clear_metrics_every_epoch
+    clear_metrics_every_epoch = train_cfg['clear_metrics_every_epoch']
 
     optimizer.zero_grad()
 
@@ -292,7 +292,7 @@ def main():
                 metrics['loss']['loc_elem'] = loc_loss_elem
                 metrics['loss']['cls_pos_rt'] = float(cls_pos_loss.detach().cpu().numpy())
                 metrics['loss']['cls_neg_rt'] = float(cls_neg_loss.detach().cpu().numpy())
-                if model_cfg.use_direction_classifier:
+                if model_cfg['use_direction_classifier']:
                     dir_loss_reduced = ret_dict['dir_loss_reduced'].mean()
                     metrics['loss']['dir_rt'] = float(dir_loss_reduced.detach().cpu().numpy())
                 # end if

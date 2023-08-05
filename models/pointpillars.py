@@ -49,41 +49,28 @@ class PointPillars(nn.Module):
         target_assigner = self.buildTargetAssigner(target_assigner_cfg, bv_range, box_coder)
         box_coder.custom_ndim = target_assigner._anchor_generators[0].custom_ndim
 
-        if not isinstance(model_cfg, second_pb2.VoxelNet):
-            raise ValueError('model_cfg not of type ' 'second_pb2.VoxelNet.')
         vfe_num_filters = list(model_cfg['voxel_feature_extractor']['num_filters'])
         vfe_with_distance = model_cfg['voxel_feature_extractor']['with_distance']
         grid_size = voxel_generator.grid_size
         dense_shape = [1] + grid_size[::-1].tolist() + [vfe_num_filters[-1]]
-        classes_cfg = model_cfg['target_assigner']['class_settings']
+
+        # classes_cfg = model_cfg['target_assigner']['class_settings']
+        # num_class = len(classes_cfg)
+
+        classes_cfg = []
+        for class_settings_name, class_settings_config in model_cfg['target_assigner'].items():
+            if 'class_settings' in class_settings_name:
+                classes_cfg.append(class_settings_config)
+            # end if
+        # end for
         num_class = len(classes_cfg)
-        use_mcnms = [c.use_multi_class_nms for c in classes_cfg]
-        use_rotate_nms = [c.use_rotate_nms for c in classes_cfg]
-        if len(model_cfg['target_assigner']['nms_pre_max_sizes']) != 0:
-            nms_pre_max_sizes = list(model_cfg['target_assigner']['nms_pre_max_sizes'])
-            assert len(nms_pre_max_sizes) == num_class
-        else:
-            nms_pre_max_sizes = [c.nms_pre_max_size for c in classes_cfg]
-        # end if
 
-        if len(model_cfg['target_assigner']['nms_post_max_sizes']) != 0:
-            nms_post_max_sizes = list(model_cfg['target_assigner']['nms_post_max_sizes'])
-            assert len(nms_post_max_sizes) == num_class
-        else:
-            nms_post_max_sizes = [c.nms_post_max_size for c in classes_cfg]
-        if len(model_cfg['target_assigner']['nms_score_thresholds']) != 0:
-            nms_score_thresholds = list(model_cfg['target_assigner']['nms_score_thresholds'])
-            assert len(nms_score_thresholds) == num_class
-        else:
-            nms_score_thresholds = [c.nms_score_threshold for c in classes_cfg]
-        # end if
-
-        if len(model_cfg['target_assigner']['nms_iou_thresholds']) != 0:
-            nms_iou_thresholds = list(model_cfg['target_assigner']['nms_iou_thresholds'])
-            assert len(nms_iou_thresholds) == num_class
-        else:
-            nms_iou_thresholds = [c.nms_iou_threshold for c in classes_cfg]
-        # end if
+        use_mcnms = [c['use_multi_class_nms'] for c in classes_cfg]
+        use_rotate_nms = [c['use_rotate_nms'] for c in classes_cfg]
+        nms_pre_max_sizes = [c['nms_pre_max_size'] for c in classes_cfg]
+        nms_post_max_sizes = [c['nms_post_max_size'] for c in classes_cfg]
+        nms_score_thresholds = [c['nms_score_threshold'] for c in classes_cfg]
+        nms_iou_thresholds = [c['nms_iou_threshold'] for c in classes_cfg]
 
         assert all(use_mcnms) or all([not b for b in use_mcnms]), "not implemented"
         assert all(use_rotate_nms) or all([not b for b in use_rotate_nms]), "not implemented"
@@ -96,10 +83,10 @@ class PointPillars(nn.Module):
 
         num_input_features = model_cfg['num_point_features']
         loss_norm_type_dict = {
-            0: LossNormType.NormByNumExamples,
-            1: LossNormType.NormByNumPositives,
-            2: LossNormType.NormByNumPosNeg,
-            3: LossNormType.DontNorm,
+            'NormByNumExamples': LossNormType.NormByNumExamples,
+            'NormByNumPositives': LossNormType.NormByNumPositives,
+            'NormByNumPosNeg': LossNormType.NormByNumPosNeg,
+            'DontNorm': LossNormType.DontNorm,
         }
         loss_norm_type = loss_norm_type_dict[model_cfg['loss_norm_type']]
 
@@ -152,7 +139,7 @@ class PointPillars(nn.Module):
         self._num_direction_bins = model_cfg['num_direction_bins']
         self._dir_limit_offset = model_cfg['direction_limit_offset']
 
-        self.voxel_feature_extractor = pointpillars_aux.PillarFeatureNet(
+        self.pillar_feature_net = pointpillars_aux.PillarFeatureNet(
             num_input_features,
             use_norm,
             num_filters=vfe_num_filters,
@@ -160,27 +147,25 @@ class PointPillars(nn.Module):
             voxel_size=self.voxel_generator.voxel_size,
             pc_range=self.voxel_generator.point_cloud_range)
 
-        self.middle_feature_extractor = pointpillars_aux.PointPillarsScatter(
+        self.point_pillars_scatter = pointpillars_aux.PointPillarsScatter(
             output_shape,
             use_norm,
-            num_input_features=model_cfg['middle_feature_extractor']['num_input_features'],
-            num_filters_down1=list(model_cfg['middle_feature_extractor']['num_filters_down1']),
-            num_filters_down2=list(model_cfg['middle_feature_extractor']['num_filters_down2']))
+            num_input_features=model_cfg['middle_feature_extractor']['num_input_features'])
 
         self.rpn = rpn.RPNV2(
             use_norm=True,
             num_class=num_class,
-            layer_nums=list(model_cfg['rpn.layer_nums']),
-            layer_strides=list(model_cfg['rpn.layer_strides']),
-            num_filters=list(model_cfg['rpn.num_filters']),
-            upsample_strides=list(model_cfg['rpn.upsample_strides']),
-            num_upsample_filters=list(model_cfg['rpn.num_upsample_filters']),
-            num_input_features=model_cfg['rpn.num_input_features'],
+            layer_nums=list(model_cfg['rpn']['layer_nums']),
+            layer_strides=list(model_cfg['rpn']['layer_strides']),
+            num_filters=list(model_cfg['rpn']['num_filters']),
+            upsample_strides=list(model_cfg['rpn']['upsample_strides']),
+            num_upsample_filters=list(model_cfg['rpn']['num_upsample_filters']),
+            num_input_features=model_cfg['rpn']['num_input_features'],
             num_anchor_per_loc=target_assigner.num_anchors_per_location,
             encode_background_as_zeros=model_cfg['encode_background_as_zeros'],
             use_direction_classifier=model_cfg['use_direction_classifier'],
-            use_groupnorm=model_cfg['rpn.use_groupnorm'],
-            num_groups=model_cfg['rpn.num_groups'],
+            use_groupnorm=model_cfg['rpn']['use_groupnorm'],
+            num_groups=model_cfg['rpn']['num_groups'],
             box_code_size=target_assigner.box_coder.code_size,
             num_direction_bins=self._num_direction_bins)
 
@@ -232,20 +217,27 @@ class PointPillars(nn.Module):
         classes = []
         feature_map_sizes = []
         for class_settings_name, class_settings_config in target_assigner_config.items():
-            anchor_generator = build_anchor_generator(class_settings_config)
-            if anchor_generator is not None:
-                anchor_generators.append(anchor_generator)
-            else:
-                assert target_assigner_config.assign_per_class is False
-            classes.append(class_settings_config['class_name'])
-            feature_map_sizes.append(class_settings_config['feature_map_size'])
+            if 'class_settings' in class_settings_name:
+                anchor_generator = build_anchor_generator(class_settings_config)
+                if anchor_generator is not None:
+                    anchor_generators.append(anchor_generator)
+                else:
+                    assert target_assigner_config.assign_per_class is False
+                classes.append(class_settings_config['class_name'])
+
+                # ToDo: There is no feature_map_size in the config file, so using an empty list for now
+                #       to be consistent, re-evaluate what this should be at a later time
+                feature_map_sizes.append([])
+            # end if
         similarity_calcs = []
 
-        for class_settings_config in target_assigner_config:
-            similarity_calcs.append(self.buildSimilarityCalculator(class_settings_config['region_similarity_calculator']))
+        for class_settings_name, class_settings_config in target_assigner_config.items():
+            if 'class_settings' in class_settings_name:
+                similarity_calcs.append(self.buildSimilarityCalculator(class_settings_config['region_similarity_calculator']))
+            # end if
         # end for
 
-        positive_fraction = target_assigner_config.sample_positive_fraction
+        positive_fraction = target_assigner_config['sample_positive_fraction']
         if positive_fraction < 0:
             positive_fraction = None
         # end if
@@ -255,26 +247,19 @@ class PointPillars(nn.Module):
             anchor_generators=anchor_generators,
             feature_map_sizes=feature_map_sizes,
             positive_fraction=positive_fraction,
-            sample_size=target_assigner_config.sample_size,
+            sample_size=target_assigner_config['sample_size'],
             region_similarity_calculators=similarity_calcs,
             classes=classes,
-            assign_per_class=target_assigner_config.assign_per_class)
+            assign_per_class=target_assigner_config['assign_per_class'])
 
         return target_assigner
     # end function
 
-    def buildSimilarityCalculator(self, similarity_config):
-        similarity_type = similarity_config.WhichOneof('region_similarity')
+    def buildSimilarityCalculator(self, similarity_type):
         if similarity_type == 'rotate_iou_similarity':
             return region_similarity.RotateIouSimilarity()
         elif similarity_type == 'nearest_iou_similarity':
             return region_similarity.NearestIouSimilarity()
-        elif similarity_type == 'distance_similarity':
-            cfg = similarity_config.distance_similarity
-            return region_similarity.DistanceSimilarity(
-                distance_norm=cfg.distance_norm,
-                with_rotation=cfg.with_rotation,
-                rotation_alpha=cfg.rotation_alpha)
         else:
             raise ValueError("unknown similarity type")
         # end if
@@ -415,55 +400,41 @@ class PointPillars(nn.Module):
     def forward(self, example):
         """module's forward should always accept dict and return loss.
         """
-        voxels = example["voxels"]
+        pillars = example["voxels"]
         num_points = example["num_points"]
-        coors = example["coordinates"]
+        pillar_coors = example["coordinates"]
         if len(num_points.shape) == 2:  # multi-gpu
             num_voxel_per_batch = example["num_voxels"].cpu().numpy().reshape(-1)
-            voxel_list = []
+            pillar_list = []
             num_points_list = []
             coors_list = []
             for i, num_voxel in enumerate(num_voxel_per_batch):
-                voxel_list.append(voxels[i, :num_voxel])
+                pillar_list.append(pillars[i, :num_voxel])
                 num_points_list.append(num_points[i, :num_voxel])
-                coors_list.append(coors[i, :num_voxel])
+                coors_list.append(pillar_coors[i, :num_voxel])
             # end for
-            voxels = torch.cat(voxel_list, dim=0)
+            pillars = torch.cat(pillar_list, dim=0)
             num_points = torch.cat(num_points_list, dim=0)
-            coors = torch.cat(coors_list, dim=0)
+            pillar_coors = torch.cat(coors_list, dim=0)
         batch_anchors = example["anchors"]
 
         # ToDo: what is batch_size_dev (i.e. how is this different from batch size ?? what does "dev" mean ??)
         batch_size_dev = batch_anchors.shape[0]
 
-        voxel_features = self.voxel_feature_extractor(voxels, num_points, coors)
-        spatial_features = self.middle_feature_extractor(voxel_features, coors, batch_size_dev)
+        # voxels: torch.float32, (80000, 60, 4)
+        # pillar_coors:  torch.float32, (80000, 4)
+        # num_points: torch.int32, (80000,)
+        voxel_features = self.pillar_feature_net(pillars, num_points, pillar_coors)
+        # torch.float32, (80000, 64)
+        spatial_features = self.point_pillars_scatter(voxel_features, pillar_coors, batch_size_dev)
+        # torch.float32, (4, 64, 400, 400)
         preds_dict = self.rpn(spatial_features)
         """
-        preds_dict contains:
-        box_preds: 
-        cls_preds: 
-        dir_cls_preds: 
+        preds_dict items:
+        box_preds:     torch.float32, (bs, 17, 50, 50, 7), 7 => x, y, z, w, l, h, yaw
+        cls_preds:     torch.float32, (bs, 17, 50, 50, 9), 9 => num classes
+        dir_cls_preds: torch.float32, (bs, 17, 50, 50, 2), 2 => forward, backward
         """
-
-        box_preds = preds_dict['box_preds']
-        cls_preds = preds_dict['cls_preds']
-        dir_cls_preds = preds_dict['dir_cls_preds']
-
-        print('\n\n' + 'box_preds: ')
-        print(box_preds.shape)
-        print(box_preds.dtype)
-
-        print('\n' + 'cls_preds: ')
-        print(cls_preds.shape)
-        print(cls_preds.dtype)
-
-        print('\n' + 'dir_cls_preds: ')
-        print(dir_cls_preds.shape)
-        print(dir_cls_preds.dtype)
-
-        print('\n\n')
-        quit()
 
         # need to check size.
         box_preds = preds_dict["box_preds"].view(batch_size_dev, -1, self._box_coder.code_size)
@@ -843,136 +814,104 @@ def _get_pos_neg_loss(cls_loss, labels):
 # end function
 
 def build_losses(loss_config):
-    """Build losses based on the config.
+    classification_loss = _build_classification_loss(loss_config['classification_loss'])
+    localization_loss = _build_localization_loss(loss_config['localization_loss'])
 
-    Builds classification, localization losses and optionally a hard example miner
-    based on the config.
+    classification_weight = loss_config['classification_weight']
+    localization_weight = loss_config['localization_weight']
 
-    Args:
-      loss_config: A losses_pb2.Loss object.
-
-    Returns:
-      classification_loss: Classification loss object.
-      localization_loss: Localization loss object.
-      classification_weight: Classification loss weight.
-      localization_weight: Localization loss weight.
-      hard_example_miner: Hard example miner object.
-
-    Raises:
-      ValueError: If hard_example_miner is used with sigmoid_focal_loss.
-    """
-    classification_loss = _build_classification_loss(loss_config.classification_loss)
-    localization_loss = _build_localization_loss(loss_config.localization_loss)
-    classification_weight = loss_config.classification_weight
-    localization_weight = loss_config.localization_weight
     hard_example_miner = None
-    if loss_config.HasField('hard_example_miner'):
+
+    if 'hard_example_miner' in loss_config:
         raise ValueError('Pytorch don\'t support HardExampleMiner')
+    # end if
+
     return (classification_loss, localization_loss, classification_weight, localization_weight, hard_example_miner)
 # end function
 
 def _build_localization_loss(loss_config):
-    """Builds a localization loss based on the loss config.
-
-    Args:
-      loss_config: A losses_pb2.LocalizationLoss object.
-
-    Returns:
-      Loss based on the config.
-
-    Raises:
-      ValueError: On invalid loss_config.
-    """
-    if not isinstance(loss_config, losses_pb2.LocalizationLoss):
-        raise ValueError('loss_config not of type losses_pb2.LocalizationLoss.')
-
-    loss_type = loss_config.WhichOneof('localization_loss')
+    loss_type = None
+    loss_settings = None
+    for key, val in loss_config.items():
+        loss_type = key
+        loss_settings = val
+        break
+    # end for
 
     if loss_type == 'weighted_l2':
-        config = loss_config.weighted_l2
-        if len(config.code_weight) == 0:
+        if len(loss_settings['code_weight']) == 0:
             code_weight = None
         else:
-            code_weight = config.code_weight
+            code_weight = loss_settings['code_weight']
         return losses.WeightedL2LocalizationLoss(code_weight)
+    # end if
 
     if loss_type == 'weighted_smooth_l1':
-        config = loss_config.weighted_smooth_l1
-        if len(config.code_weight) == 0:
+        if len(loss_settings['code_weight']) == 0:
             code_weight = None
         else:
-            code_weight = config.code_weight
-        return losses.WeightedSmoothL1LocalizationLoss(config.sigma, code_weight)
+            code_weight = loss_settings['code_weight']
+        return losses.WeightedSmoothL1LocalizationLoss(loss_settings['sigma'], code_weight)
+    # end if
+
     if loss_type == 'weighted_ghm':
-        config = loss_config.weighted_ghm
-        if len(config.code_weight) == 0:
+        loss_settings = loss_config.weighted_ghm
+        if len(loss_settings['code_weight']) == 0:
             code_weight = None
         else:
-            code_weight = config.code_weight
-        return GHMRLoss(config.mu, config.bins, config.momentum, code_weight)
+            code_weight = loss_settings['code_weight']
+        return GHMRLoss(loss_settings['mu'], loss_settings['bins'], loss_settings['momentum'], code_weight)
+    # end if
 
     raise ValueError('Empty loss config.')
 # end function
 
-def _build_classification_loss(loss_config):
-    """Builds a classification loss based on the loss config.
-
-    Args:
-      loss_config: A losses_pb2.ClassificationLoss object.
-
-    Returns:
-      Loss based on the config.
-
-    Raises:
-      ValueError: On invalid loss_config.
-    """
-    if not isinstance(loss_config, losses_pb2.ClassificationLoss):
-        raise ValueError('loss_config not of type losses_pb2.ClassificationLoss.')
-
-    loss_type = loss_config.WhichOneof('classification_loss')
+def _build_classification_loss(loss_config):    
+    loss_type = None
+    loss_settings = None
+    for key, val in loss_config.items():
+        loss_type = key
+        loss_settings = val
+        break
+    # end for
 
     if loss_type == 'weighted_sigmoid':
         return losses.WeightedSigmoidClassificationLoss()
 
     if loss_type == 'weighted_sigmoid_focal':
-        config = loss_config.weighted_sigmoid_focal
         # alpha = None
         # if config.HasField('alpha'):
         #   alpha = config.alpha
-        if config.alpha > 0:
-            alpha = config.alpha
+        if loss_settings['alpha'] > 0:
+            alpha = loss_settings['alpha']
         else:
             alpha = None
-        return losses.SigmoidFocalClassificationLoss(gamma=config.gamma, alpha=alpha)
+        return losses.SigmoidFocalClassificationLoss(gamma=loss_settings['gamma'], alpha=alpha)
     # end if
 
     if loss_type == 'weighted_softmax_focal':
-        config = loss_config.weighted_softmax_focal
         # alpha = None
         # if config.HasField('alpha'):
         #   alpha = config.alpha
-        if config.alpha > 0:
-            alpha = config.alpha
+        if loss_settings['alpha'] > 0:
+            alpha = loss_settings['alpha']
         else:
             alpha = None
         # end if
-        return losses.SoftmaxFocalClassificationLoss(gamma=config.gamma, alpha=alpha)
+        return losses.SoftmaxFocalClassificationLoss(gamma=loss_settings['gamma'], alpha=alpha)
     # end if
 
     if loss_type == 'weighted_ghm':
-        config = loss_config.weighted_ghm
-        return GHMCLoss(bins=config.bins, momentum=config.momentum)
+        return GHMCLoss(bins=loss_settings['bins'], momentum=loss_settings['momentum'])
     # end if
 
     if loss_type == 'weighted_softmax':
-        config = loss_config.weighted_softmax
-        return losses.WeightedSoftmaxClassificationLoss(logit_scale=config.logit_scale)
+        return losses.WeightedSoftmaxClassificationLoss(logit_scale=loss_settings['logit_scale'])
     # end if
 
     if loss_type == 'bootstrapped_sigmoid':
-        config = loss_config.bootstrapped_sigmoid
-        return losses.BootstrappedSigmoidClassificationLoss(alpha=config.alpha,
-                                                            bootstrap_type=('hard' if config.hard_bootstrap else 'soft'))
+        return losses.BootstrappedSigmoidClassificationLoss(alpha=loss_settings['alpha'],
+                                                            bootstrap_type=('hard' if loss_settings['hard_bootstrap'] else 'soft'))
     # end if
 
     raise ValueError('Empty loss config.')

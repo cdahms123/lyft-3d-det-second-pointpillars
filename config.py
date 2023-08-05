@@ -89,9 +89,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'class_settings_1': {
                 'class_name': "bicycle",
@@ -109,9 +107,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'class_settings_2': {
                 'class_name': "animal",
@@ -129,9 +125,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'class_settings_3': {
                 'class_name': "bus",
@@ -149,9 +143,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'class_settings_4': {
                 'class_name': "emergency_vehicle",
@@ -169,9 +161,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'class_settings_5': {
                 'class_name': "other_vehicle",
@@ -189,9 +179,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'class_settings_6': {
                 'class_name': "motorcycle",
@@ -209,9 +197,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'class_settings_7': {
                 'class_name': "pedestrian",
@@ -229,9 +215,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'class_settings_8': {
                 'class_name': "truck",
@@ -249,9 +233,7 @@ model = {
                 'nms_post_max_size': 300,
                 'nms_score_threshold': 0.05,
                 'nms_iou_threshold': 0.3,
-                'region_similarity_calculator': {
-                    'nearest_iou_similarity': {}
-                }
+                'region_similarity_calculator': 'nearest_iou_similarity'
             },
             'sample_positive_fraction': -1,
             'sample_size': 512,
