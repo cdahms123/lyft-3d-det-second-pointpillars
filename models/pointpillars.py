@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+import pprint
 
 from protos import voxel_generator_pb2
 from protos import target_pb2
@@ -30,23 +31,6 @@ from core.losses import WeightedSmoothL1LocalizationLoss, WeightedSoftmaxClassif
 from models import pointpillars_aux, rpn
 from torchplus import metrics
 
-def _get_pos_neg_loss(cls_loss, labels):
-    # cls_loss: [N, num_anchors, num_class]
-    # labels: [N, num_anchors]
-    batch_size = cls_loss.shape[0]
-    if cls_loss.shape[-1] == 1 or len(cls_loss.shape) == 2:
-        cls_pos_loss = (labels > 0).type_as(cls_loss) * cls_loss.view(
-            batch_size, -1)
-        cls_neg_loss = (labels == 0).type_as(cls_loss) * cls_loss.view(
-            batch_size, -1)
-        cls_pos_loss = cls_pos_loss.sum() / batch_size
-        cls_neg_loss = cls_neg_loss.sum() / batch_size
-    else:
-        cls_pos_loss = cls_loss[..., 1:].sum() / batch_size
-        cls_neg_loss = cls_loss[..., 0].sum() / batch_size
-    return cls_pos_loss, cls_neg_loss
-# end function
-
 class LossNormType(Enum):
     NormByNumPositives = "norm_by_num_positives"
     NormByNumExamples = "norm_by_num_examples"
@@ -58,43 +42,49 @@ class PointPillars(nn.Module):
     def __init__(self, model_cfg, measure_time=False):
         super().__init__()
 
-        voxel_generator = self.buildVoxelGenerator(model_cfg.voxel_generator)
+        voxel_generator = self.buildVoxelGenerator(model_cfg['voxel_generator'])
         bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
-        box_coder = self.buildBoxCoder(model_cfg.box_coder)
-        target_assigner_cfg = model_cfg.target_assigner
+        box_coder = self.buildBoxCoder(model_cfg['box_coder'])
+        target_assigner_cfg = model_cfg['target_assigner']
         target_assigner = self.buildTargetAssigner(target_assigner_cfg, bv_range, box_coder)
         box_coder.custom_ndim = target_assigner._anchor_generators[0].custom_ndim
 
         if not isinstance(model_cfg, second_pb2.VoxelNet):
             raise ValueError('model_cfg not of type ' 'second_pb2.VoxelNet.')
-        vfe_num_filters = list(model_cfg.voxel_feature_extractor.num_filters)
-        vfe_with_distance = model_cfg.voxel_feature_extractor.with_distance
+        vfe_num_filters = list(model_cfg['voxel_feature_extractor']['num_filters'])
+        vfe_with_distance = model_cfg['voxel_feature_extractor']['with_distance']
         grid_size = voxel_generator.grid_size
         dense_shape = [1] + grid_size[::-1].tolist() + [vfe_num_filters[-1]]
-        classes_cfg = model_cfg.target_assigner.class_settings
+        classes_cfg = model_cfg['target_assigner']['class_settings']
         num_class = len(classes_cfg)
         use_mcnms = [c.use_multi_class_nms for c in classes_cfg]
         use_rotate_nms = [c.use_rotate_nms for c in classes_cfg]
-        if len(model_cfg.target_assigner.nms_pre_max_sizes) != 0:
-            nms_pre_max_sizes = list(model_cfg.target_assigner.nms_pre_max_sizes)
+        if len(model_cfg['target_assigner']['nms_pre_max_sizes']) != 0:
+            nms_pre_max_sizes = list(model_cfg['target_assigner']['nms_pre_max_sizes'])
             assert len(nms_pre_max_sizes) == num_class
         else:
             nms_pre_max_sizes = [c.nms_pre_max_size for c in classes_cfg]
-        if len(model_cfg.target_assigner.nms_post_max_sizes) != 0:
-            nms_post_max_sizes = list(model_cfg.target_assigner.nms_post_max_sizes)
+        # end if
+
+        if len(model_cfg['target_assigner']['nms_post_max_sizes']) != 0:
+            nms_post_max_sizes = list(model_cfg['target_assigner']['nms_post_max_sizes'])
             assert len(nms_post_max_sizes) == num_class
         else:
             nms_post_max_sizes = [c.nms_post_max_size for c in classes_cfg]
-        if len(model_cfg.target_assigner.nms_score_thresholds) != 0:
-            nms_score_thresholds = list(model_cfg.target_assigner.nms_score_thresholds)
+        if len(model_cfg['target_assigner']['nms_score_thresholds']) != 0:
+            nms_score_thresholds = list(model_cfg['target_assigner']['nms_score_thresholds'])
             assert len(nms_score_thresholds) == num_class
         else:
             nms_score_thresholds = [c.nms_score_threshold for c in classes_cfg]
-        if len(model_cfg.target_assigner.nms_iou_thresholds) != 0:
-            nms_iou_thresholds = list(model_cfg.target_assigner.nms_iou_thresholds)
+        # end if
+
+        if len(model_cfg['target_assigner']['nms_iou_thresholds']) != 0:
+            nms_iou_thresholds = list(model_cfg['target_assigner']['nms_iou_thresholds'])
             assert len(nms_iou_thresholds) == num_class
         else:
             nms_iou_thresholds = [c.nms_iou_threshold for c in classes_cfg]
+        # end if
+
         assert all(use_mcnms) or all([not b for b in use_mcnms]), "not implemented"
         assert all(use_rotate_nms) or all([not b for b in use_rotate_nms]), "not implemented"
         if all([not b for b in use_mcnms]):
@@ -104,27 +94,27 @@ class PointPillars(nn.Module):
             assert all([e == nms_iou_thresholds[0] for e in nms_iou_thresholds])
             # @ags: so, we gotta make all pre/pos max, score and iou thresholds equal??
 
-        num_input_features = model_cfg.num_point_features
+        num_input_features = model_cfg['num_point_features']
         loss_norm_type_dict = {
             0: LossNormType.NormByNumExamples,
             1: LossNormType.NormByNumPositives,
             2: LossNormType.NormByNumPosNeg,
             3: LossNormType.DontNorm,
         }
-        loss_norm_type = loss_norm_type_dict[model_cfg.loss_norm_type]
+        loss_norm_type = loss_norm_type_dict[model_cfg['loss_norm_type']]
 
-        losses = build_losses(model_cfg.loss)
-        encode_rad_error_by_sin = model_cfg.encode_rad_error_by_sin
+        losses = build_losses(model_cfg['loss'])
+        encode_rad_error_by_sin = model_cfg['encode_rad_error_by_sin']
         cls_loss_ftor, loc_loss_ftor, cls_weight, loc_weight, _ = losses
-        pos_cls_weight = model_cfg.pos_class_weight
-        neg_cls_weight = model_cfg.neg_class_weight
-        direction_loss_weight = model_cfg.direction_loss_weight
-        sin_error_factor = model_cfg.sin_error_factor
+        pos_cls_weight = model_cfg['pos_class_weight']
+        neg_cls_weight = model_cfg['neg_class_weight']
+        direction_loss_weight = model_cfg['direction_loss_weight']
+        sin_error_factor = model_cfg['sin_error_factor']
         if sin_error_factor == 0:
             sin_error_factor = 1.0
         # end if
 
-        post_center_range = list(model_cfg.post_center_limit_range)
+        post_center_range = list(model_cfg['post_center_limit_range'])
         use_norm = True
         output_shape = dense_shape
 
@@ -137,9 +127,9 @@ class PointPillars(nn.Module):
         self._nms_pre_max_sizes = nms_pre_max_sizes
         self._nms_post_max_sizes = nms_post_max_sizes
         self._nms_iou_thresholds = nms_iou_thresholds
-        self._use_sigmoid_score = model_cfg.use_sigmoid_score
-        self._encode_background_as_zeros = model_cfg.encode_background_as_zeros
-        self._use_direction_classifier = model_cfg.use_direction_classifier
+        self._use_sigmoid_score = model_cfg['use_sigmoid_score']
+        self._encode_background_as_zeros = model_cfg['encode_background_as_zeros']
+        self._use_direction_classifier = model_cfg['use_direction_classifier']
         self._num_input_features = num_input_features
         self._box_coder = target_assigner.box_coder
         self.target_assigner = target_assigner
@@ -150,7 +140,7 @@ class PointPillars(nn.Module):
         self._loss_norm_type = loss_norm_type
         self._dir_loss_ftor = WeightedSoftmaxClassificationLoss()
         self._diff_loc_loss_ftor = WeightedSmoothL1LocalizationLoss()
-        self._dir_offset = model_cfg.direction_offset
+        self._dir_offset = model_cfg['direction_offset']
         self._loc_loss_ftor = loc_loss_ftor
         self._cls_loss_ftor = cls_loss_ftor
         self._direction_loss_weight = direction_loss_weight
@@ -158,9 +148,9 @@ class PointPillars(nn.Module):
         self._loc_loss_weight = loc_weight
         self._post_center_range = post_center_range or []
         self.measure_time = measure_time
-        self._nms_class_agnostic = model_cfg.nms_class_agnostic
-        self._num_direction_bins = model_cfg.num_direction_bins
-        self._dir_limit_offset = model_cfg.direction_limit_offset
+        self._nms_class_agnostic = model_cfg['nms_class_agnostic']
+        self._num_direction_bins = model_cfg['num_direction_bins']
+        self._dir_limit_offset = model_cfg['direction_limit_offset']
 
         self.voxel_feature_extractor = pointpillars_aux.PillarFeatureNet(
             num_input_features,
@@ -173,35 +163,35 @@ class PointPillars(nn.Module):
         self.middle_feature_extractor = pointpillars_aux.PointPillarsScatter(
             output_shape,
             use_norm,
-            num_input_features=model_cfg.middle_feature_extractor.num_input_features,
-            num_filters_down1=list(model_cfg.middle_feature_extractor.num_filters_down1),
-            num_filters_down2=list(model_cfg.middle_feature_extractor.num_filters_down2))
+            num_input_features=model_cfg['middle_feature_extractor']['num_input_features'],
+            num_filters_down1=list(model_cfg['middle_feature_extractor']['num_filters_down1']),
+            num_filters_down2=list(model_cfg['middle_feature_extractor']['num_filters_down2']))
 
         self.rpn = rpn.RPNV2(
             use_norm=True,
             num_class=num_class,
-            layer_nums=list(model_cfg.rpn.layer_nums),
-            layer_strides=list(model_cfg.rpn.layer_strides),
-            num_filters=list(model_cfg.rpn.num_filters),
-            upsample_strides=list(model_cfg.rpn.upsample_strides),
-            num_upsample_filters=list(model_cfg.rpn.num_upsample_filters),
-            num_input_features=model_cfg.rpn.num_input_features,
+            layer_nums=list(model_cfg['rpn.layer_nums']),
+            layer_strides=list(model_cfg['rpn.layer_strides']),
+            num_filters=list(model_cfg['rpn.num_filters']),
+            upsample_strides=list(model_cfg['rpn.upsample_strides']),
+            num_upsample_filters=list(model_cfg['rpn.num_upsample_filters']),
+            num_input_features=model_cfg['rpn.num_input_features'],
             num_anchor_per_loc=target_assigner.num_anchors_per_location,
-            encode_background_as_zeros=model_cfg.encode_background_as_zeros,
-            use_direction_classifier=model_cfg.use_direction_classifier,
-            use_groupnorm=model_cfg.rpn.use_groupnorm,
-            num_groups=model_cfg.rpn.num_groups,
+            encode_background_as_zeros=model_cfg['encode_background_as_zeros'],
+            use_direction_classifier=model_cfg['use_direction_classifier'],
+            use_groupnorm=model_cfg['rpn.use_groupnorm'],
+            num_groups=model_cfg['rpn.num_groups'],
             box_code_size=target_assigner.box_coder.code_size,
             num_direction_bins=self._num_direction_bins)
 
-        self.rpn_acc = metrics.Accuracy(dim=-1, encode_background_as_zeros=model_cfg.encode_background_as_zeros)
+        self.rpn_acc = metrics.Accuracy(dim=-1, encode_background_as_zeros=model_cfg['encode_background_as_zeros'])
         self.rpn_precision = metrics.Precision(dim=-1)
         self.rpn_recall = metrics.Recall(dim=-1)
         self.rpn_metrics = metrics.PrecisionRecall(
             dim=-1,
             thresholds=[0.1, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95],
-            use_sigmoid_score=model_cfg.use_sigmoid_score,
-            encode_background_as_zeros=model_cfg.encode_background_as_zeros)
+            use_sigmoid_score=model_cfg['use_sigmoid_score'],
+            encode_background_as_zeros=model_cfg['encode_background_as_zeros'])
 
         self.rpn_cls_loss = metrics.Scalar()
         self.rpn_loc_loss = metrics.Scalar()
@@ -216,60 +206,50 @@ class PointPillars(nn.Module):
         self._time_count_dict = {}
     # end function
 
-    def buildVoxelGenerator(self, voxel_config):
-        if not isinstance(voxel_config, voxel_generator_pb2.VoxelGenerator):
-            raise ValueError('input_reader_config not of type '
-                             'input_reader_pb2.InputReader.')
+    def buildVoxelGenerator(self, voxel_generator_config):
         voxel_generator = VoxelGeneratorV2(
-            voxel_size=list(voxel_config.voxel_size),
-            point_cloud_range=list(voxel_config.point_cloud_range),
-            max_num_points=voxel_config.max_number_of_points_per_voxel,
-            max_voxels=20000,
-            full_mean=voxel_config.full_empty_part_with_mean,
-            block_filtering=voxel_config.block_filtering,
-            block_factor=voxel_config.block_factor,
-            block_size=voxel_config.block_size,
-            height_threshold=voxel_config.height_threshold)
+            voxel_size=list(voxel_generator_config['voxel_size']),
+            point_cloud_range=list(voxel_generator_config['point_cloud_range']),
+            max_num_points=voxel_generator_config['max_number_of_points_per_voxel'],
+            max_voxels=20000)
         return voxel_generator
     # end function
 
     def buildBoxCoder(self, box_coder_config):
-        box_coder_type = box_coder_config.WhichOneof('box_coder')
-        if box_coder_type == 'ground_box3d_coder':
-            cfg = box_coder_config.ground_box3d_coder
-            return GroundBox3dCoderTorch(cfg.linear_dim, cfg.encode_angle_vector)
-        elif box_coder_type == 'bev_box_coder':
-            cfg = box_coder_config.bev_box_coder
-            return BevBoxCoderTorch(cfg.linear_dim, cfg.encode_angle_vector, cfg.z_fixed, cfg.h_fixed)
+        if 'ground_box3d_coder' in box_coder_config:
+            cfg = box_coder_config['ground_box3d_coder']
+            return GroundBox3dCoderTorch(cfg['linear_dim'], cfg['encode_angle_vector'])
+        elif 'bev_box_coder' in box_coder_config:
+            cfg = box_coder_config['bev_box_coder']
+            return BevBoxCoderTorch(cfg['linear_dim'], cfg['encode_angle_vector'], cfg['z_fixed'], cfg['h_fixed'])
         else:
             raise ValueError("unknown box_coder type")
         # end if
     # end function
 
     def buildTargetAssigner(self, target_assigner_config, bv_range, box_coder):
-        if not isinstance(target_assigner_config, target_pb2.TargetAssigner):
-            raise ValueError('input_reader_config not of type '
-                             'input_reader_pb2.InputReader.')
-        classes_cfg = target_assigner_config.class_settings
         anchor_generators = []
         classes = []
         feature_map_sizes = []
-        for class_setting in classes_cfg:
-            # anchor_generator = anchor_generator_builder.build(class_setting)
-            anchor_generator = build_anchor_generator(class_setting)
+        for class_settings_name, class_settings_config in target_assigner_config.items():
+            anchor_generator = build_anchor_generator(class_settings_config)
             if anchor_generator is not None:
                 anchor_generators.append(anchor_generator)
             else:
                 assert target_assigner_config.assign_per_class is False
-            classes.append(class_setting.class_name)
-            feature_map_sizes.append(class_setting.feature_map_size)
+            classes.append(class_settings_config['class_name'])
+            feature_map_sizes.append(class_settings_config['feature_map_size'])
         similarity_calcs = []
-        for class_setting in classes_cfg:
-            similarity_calcs.append(self.buildSimilarityCalculator(class_setting.region_similarity_calculator))
+
+        for class_settings_config in target_assigner_config:
+            similarity_calcs.append(self.buildSimilarityCalculator(class_settings_config['region_similarity_calculator']))
+        # end for
 
         positive_fraction = target_assigner_config.sample_positive_fraction
         if positive_fraction < 0:
             positive_fraction = None
+        # end if
+
         target_assigner = TargetAssigner(
             box_coder=box_coder,
             anchor_generators=anchor_generators,
@@ -279,6 +259,7 @@ class PointPillars(nn.Module):
             region_similarity_calculators=similarity_calcs,
             classes=classes,
             assign_per_class=target_assigner_config.assign_per_class)
+
         return target_assigner
     # end function
 
@@ -438,8 +419,7 @@ class PointPillars(nn.Module):
         num_points = example["num_points"]
         coors = example["coordinates"]
         if len(num_points.shape) == 2:  # multi-gpu
-            num_voxel_per_batch = example["num_voxels"].cpu().numpy().reshape(
-                -1)
+            num_voxel_per_batch = example["num_voxels"].cpu().numpy().reshape(-1)
             voxel_list = []
             num_points_list = []
             coors_list = []
@@ -447,6 +427,7 @@ class PointPillars(nn.Module):
                 voxel_list.append(voxels[i, :num_voxel])
                 num_points_list.append(num_points[i, :num_voxel])
                 coors_list.append(coors[i, :num_voxel])
+            # end for
             voxels = torch.cat(voxel_list, dim=0)
             num_points = torch.cat(num_points_list, dim=0)
             coors = torch.cat(coors_list, dim=0)
@@ -458,7 +439,31 @@ class PointPillars(nn.Module):
         voxel_features = self.voxel_feature_extractor(voxels, num_points, coors)
         spatial_features = self.middle_feature_extractor(voxel_features, coors, batch_size_dev)
         preds_dict = self.rpn(spatial_features)
+        """
+        preds_dict contains:
+        box_preds: 
+        cls_preds: 
+        dir_cls_preds: 
+        """
 
+        box_preds = preds_dict['box_preds']
+        cls_preds = preds_dict['cls_preds']
+        dir_cls_preds = preds_dict['dir_cls_preds']
+
+        print('\n\n' + 'box_preds: ')
+        print(box_preds.shape)
+        print(box_preds.dtype)
+
+        print('\n' + 'cls_preds: ')
+        print(cls_preds.shape)
+        print(cls_preds.dtype)
+
+        print('\n' + 'dir_cls_preds: ')
+        print(dir_cls_preds.shape)
+        print(dir_cls_preds.dtype)
+
+        print('\n\n')
+        quit()
 
         # need to check size.
         box_preds = preds_dict["box_preds"].view(batch_size_dev, -1, self._box_coder.code_size)
@@ -468,23 +473,13 @@ class PointPillars(nn.Module):
             return self.loss(example, preds_dict)
         else:
             with torch.no_grad():
-                res = self.predict(example, preds_dict)
+                res = self.inference(example, preds_dict)
             # end with
             return res
         # end if
     # end function
 
-    def predict(self, example, preds_dict):
-        """start with v1.6.0, this function don't contain any kitti-specific code.
-        Returns:
-            predict: list of pred_dict.
-            pred_dict: {
-                box3d_lidar: [N, 7] 3d box.
-                scores: [N]
-                label_preds: [N]
-                metadata: meta-data which contains dataset-specific information
-            }
-        """
+    def inference(self, example, preds_dict):
         batch_size = example['anchors'].shape[0]
         if "metadata" not in example or len(example["metadata"]) == 0:
             meta_list = [None] * batch_size
@@ -802,36 +797,49 @@ class PointPillars(nn.Module):
 # end class
 
 def build_anchor_generator(class_cfg):
-    ag_type = class_cfg.WhichOneof('anchor_generator')
-
-    if ag_type == 'anchor_generator_stride':
-        config = class_cfg.anchor_generator_stride
+    if 'anchor_generator_stride' in class_cfg:
+        config = class_cfg['anchor_generator_stride']
         ag = AnchorGeneratorStride(
-            sizes=list(config.sizes),
-            anchor_strides=list(config.strides),
-            anchor_offsets=list(config.offsets),
-            rotations=list(config.rotations),
-            match_threshold=class_cfg.matched_threshold,
-            unmatch_threshold=class_cfg.unmatched_threshold,
-            class_name=class_cfg.class_name,
-            custom_values=list(config.custom_values))
+            sizes=list(config['sizes']),
+            anchor_strides=list(config['strides']),
+            anchor_offsets=list(config['offsets']),
+            rotations=list(config['rotations']),
+            match_threshold=class_cfg['matched_threshold'],
+            unmatch_threshold=class_cfg['unmatched_threshold'],
+            class_name=class_cfg['class_name'])
         return ag
-    elif ag_type == 'anchor_generator_range':
-        config = class_cfg.anchor_generator_range
+    elif 'anchor_generator_range' in class_cfg:
+        config = class_cfg['anchor_generator_range']
         ag = AnchorGeneratorRange(
-            sizes=list(config.sizes),
-            anchor_ranges=list(config.anchor_ranges),
-            rotations=list(config.rotations),
-            match_threshold=class_cfg.matched_threshold,
-            unmatch_threshold=class_cfg.unmatched_threshold,
-            class_name=class_cfg.class_name,
-            custom_values=list(config.custom_values))
+            sizes=list(config['sizes']),
+            anchor_ranges=list(config['anchor_ranges']),
+            rotations=list(config['rotations']),
+            match_threshold=class_cfg['matched_threshold'],
+            unmatch_threshold=class_cfg['unmatched_threshold'],
+            class_name=class_cfg['class_name'])
         return ag
-    elif ag_type == 'no_anchor':
+    elif 'no_anchor' in class_cfg:
         return None
     else:
-        raise ValueError(" unknown anchor generator type")
+        raise ValueError("unknown anchor generator type")
     # end if
+# end function
+
+def _get_pos_neg_loss(cls_loss, labels):
+    # cls_loss: [N, num_anchors, num_class]
+    # labels: [N, num_anchors]
+    batch_size = cls_loss.shape[0]
+    if cls_loss.shape[-1] == 1 or len(cls_loss.shape) == 2:
+        cls_pos_loss = (labels > 0).type_as(cls_loss) * cls_loss.view(
+            batch_size, -1)
+        cls_neg_loss = (labels == 0).type_as(cls_loss) * cls_loss.view(
+            batch_size, -1)
+        cls_pos_loss = cls_pos_loss.sum() / batch_size
+        cls_neg_loss = cls_neg_loss.sum() / batch_size
+    else:
+        cls_pos_loss = cls_loss[..., 1:].sum() / batch_size
+        cls_neg_loss = cls_loss[..., 0].sum() / batch_size
+    return cls_pos_loss, cls_neg_loss
 # end function
 
 def build_losses(loss_config):

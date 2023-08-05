@@ -178,6 +178,7 @@ class MyLyftDataset(Dataset):
         points[: 3] = 0
 
         # this if block has to go before voxel_generator.generate(points, . . .) call below b/c this if block modifies points
+        # augmentations
         if self._training:
             gt_dict = {
                 'gt_boxes': lyftInfoDict['gt_boxes'],
