@@ -422,9 +422,9 @@ class PointPillars(nn.Module):
         # num_points: torch.int32, (80000,)
         voxel_features = self.pillar_feature_net(pillars, num_points, pillar_coors)
         # torch.float32, (80000, 64)
-        spatial_features = self.point_pillars_scatter(voxel_features, pillar_coors, batch_size_dev)
+        pseudo_image = self.point_pillars_scatter(voxel_features, pillar_coors, batch_size_dev)
         # torch.float32, (4, 64, 400, 400)
-        preds_dict = self.rpn(spatial_features)
+        preds_dict = self.rpn(pseudo_image)
         """
         preds_dict items:
         box_preds:     torch.float32, (bs, 17, 50, 50, 7), 7 => x, y, z, w, l, h, yaw

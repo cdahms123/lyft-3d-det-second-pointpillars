@@ -91,9 +91,10 @@ class MyLyftDataset(Dataset):
             self._global_random_rot_range = list(preprocess_cfg['global_random_rotation_range_per_object'])
             self._global_translate_noise_std = list(preprocess_cfg['global_translate_noise_std'])
             self._random_flip_x = preprocess_cfg['random_flip_x']
-            self._random_flip_y = preprocess_cfg['random_flip_y']
-            self._anchor_cache = anchor_cache
+            self._random_flip_y = preprocess_cfg['random_flip_y']            
         # end if
+
+        self._anchor_cache = anchor_cache
     # end function
 
     def __len__(self):

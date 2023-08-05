@@ -90,13 +90,6 @@ def main():
 
     os.makedirs(RESULTS_LOC, exist_ok=True)
 
-    # # read in the config
-    # config = pipeline_pb2.TrainEvalPipelineConfig()
-    # with open(CONFIG_FILE_LOC, 'r') as f:
-    #     proto_str = f.read()
-    #     text_format.Merge(proto_str, config)
-    # # end with
-
     # break out the various sub-parts of the config
     train_input_cfg = config.train_input_reader
     eval_input_cfg = config.eval_input_reader
@@ -438,7 +431,7 @@ def main():
         testFrameIds,
         testIdxToFrameIdDict,
         test_input_cfg,
-        config.model.second,
+        config.model['second'],
         training=False,
         voxel_generator=net.voxel_generator,
         target_assigner=net.target_assigner)
