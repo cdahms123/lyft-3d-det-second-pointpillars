@@ -26,10 +26,11 @@ from lyft_dataset_sdk.utils.data_classes import Box
 from lyft_dataset_sdk.utils.geometry_utils import quaternion_yaw
 
 # local imports
+import config
 import my_lyft_dataset
 from my_lyft_dataset import MyLyftDataset
 from models.pointpillars import PointPillars
-from protos import pipeline_pb2
+# from protos import pipeline_pb2
 from utils.log_tool import SimpleModelLog
 
 warnings.filterwarnings('ignore')
@@ -65,6 +66,8 @@ MAKE_SUBMISSION = True
 
 # ToDo: move loss out of PointPillars class, move loss into separate file
 
+# ToDo: move voxel_generator out of the dataset class
+
 def main():
     np.set_printoptions(suppress=True)
 
@@ -87,17 +90,10 @@ def main():
 
     os.makedirs(RESULTS_LOC, exist_ok=True)
 
-    # read in the config
-    config = pipeline_pb2.TrainEvalPipelineConfig()
-    with open(CONFIG_FILE_LOC, 'r') as f:
-        proto_str = f.read()
-        text_format.Merge(proto_str, config)
-    # end with
-
     # break out the various sub-parts of the config
     train_input_cfg = config.train_input_reader
     eval_input_cfg = config.eval_input_reader
-    model_cfg = config.model.second
+    model_cfg = config.model['second']
     train_cfg = config.train_config
 
     # instantiate the net
@@ -177,26 +173,26 @@ def main():
 
     trainDataLoader = torch.utils.data.DataLoader(
         trainDataset,
-        batch_size=train_input_cfg.batch_size,
+        batch_size=train_input_cfg['batch_size'],
         shuffle=True,
         collate_fn=my_lyft_dataset.my_collate_fn,
         worker_init_fn=_worker_init_fn,
         drop_last=True)
     evalDataLoader = torch.utils.data.DataLoader(
         evalDataset,
-        batch_size=eval_input_cfg.batch_size,
+        batch_size=eval_input_cfg['batch_size'],
         shuffle=False,
         collate_fn=my_lyft_dataset.my_collate_fn)
 
     model_logging = SimpleModelLog(RESULTS_LOC)
     model_logging.open()
-    model_logging.log_text(proto_str + '\n', 0, tag='config', print_to_terminal=False)
+    model_logging.log_text('dont know' + '\n', 0, tag='config', print_to_terminal=False)
 
     # log starting step
     print('starting from step ' + str(net.get_global_step()) + '\n')
 
     t = time.time()
-    clear_metrics_every_epoch = train_cfg.clear_metrics_every_epoch
+    clear_metrics_every_epoch = train_cfg['clear_metrics_every_epoch']
 
     optimizer.zero_grad()
 
@@ -289,7 +285,7 @@ def main():
                 metrics['loss']['loc_elem'] = loc_loss_elem
                 metrics['loss']['cls_pos_rt'] = float(cls_pos_loss.detach().cpu().numpy())
                 metrics['loss']['cls_neg_rt'] = float(cls_neg_loss.detach().cpu().numpy())
-                if model_cfg.use_direction_classifier:
+                if model_cfg['use_direction_classifier']:
                     dir_loss_reduced = ret_dict['dir_loss_reduced'].mean()
                     metrics['loss']['dir_rt'] = float(dir_loss_reduced.detach().cpu().numpy())
                 # end if
@@ -435,7 +431,7 @@ def main():
         testFrameIds,
         testIdxToFrameIdDict,
         test_input_cfg,
-        config.model.second,
+        config.model['second'],
         training=False,
         voxel_generator=net.voxel_generator,
         target_assigner=net.target_assigner)

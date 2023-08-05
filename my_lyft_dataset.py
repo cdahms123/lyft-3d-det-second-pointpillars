@@ -21,7 +21,6 @@ from torch.utils.data import Dataset
 # local imports
 from core import preprocess as prep
 from core import box_np_ops
-from protos import input_reader_pb2
 from utils.config_tool import get_downsample_factor
 
 class MyLyftDataset(Dataset):
@@ -31,7 +30,7 @@ class MyLyftDataset(Dataset):
                  idxToFrameIdDict: Dict[int, str],
                  input_reader_config,
                  model_config,
-                 training,
+                 training: bool,
                  voxel_generator,
                  target_assigner):
         print('in MyLyftDataset init')
@@ -40,11 +39,7 @@ class MyLyftDataset(Dataset):
         self.frameIds = frameIds
         self.idxToFrameIdDict = idxToFrameIdDict
 
-        if not isinstance(input_reader_config, input_reader_pb2.InputReader):
-            raise ValueError('input_reader_config is not type input_reader_pb2.InputReader.')
-        # end if
-
-        prep_cfg = input_reader_config.preprocess
+        preprocess_cfg = input_reader_config['preprocess']
         out_size_factor = get_downsample_factor(model_config)
         assert out_size_factor > 0
 
@@ -80,18 +75,25 @@ class MyLyftDataset(Dataset):
         self._voxel_generator = voxel_generator
         self._target_assigner = target_assigner
         self._training = training
-        self._max_voxels = prep_cfg.max_number_of_voxels
-        self._remove_unknown = prep_cfg.remove_unknown_examples
-        self._gt_rotation_noise = list(prep_cfg.groundtruth_rotation_uniform_noise)
-        self._gt_loc_noise_std = list(prep_cfg.groundtruth_localization_noise_std)
-        self._global_rotation_noise = list(prep_cfg.global_rotation_uniform_noise)
-        self._global_scaling_noise = list(prep_cfg.global_scaling_uniform_noise)
-        self._global_random_rot_range = list(prep_cfg.global_random_rotation_range_per_object)
-        self._global_translate_noise_std = list(prep_cfg.global_translate_noise_std)
-        self._use_group_id = prep_cfg.use_group_id
-        self._min_points_in_gt = prep_cfg.min_num_of_points_in_gt
-        self._random_flip_x = prep_cfg.random_flip_x
-        self._random_flip_y = prep_cfg.random_flip_y
+
+        print('\n\n' + 'preprocess_cfg: ')
+        pprint.pprint(preprocess_cfg, sort_dicts=False)
+        print('\n\n')
+
+
+        self._max_voxels = preprocess_cfg['max_number_of_voxels']
+
+        if self._training:        
+            self._gt_rotation_noise = list(preprocess_cfg['groundtruth_rotation_uniform_noise'])
+            self._gt_loc_noise_std = list(preprocess_cfg['groundtruth_localization_noise_std'])
+            self._global_rotation_noise = list(preprocess_cfg['global_rotation_uniform_noise'])
+            self._global_scaling_noise = list(preprocess_cfg['global_scaling_uniform_noise'])
+            self._global_random_rot_range = list(preprocess_cfg['global_random_rotation_range_per_object'])
+            self._global_translate_noise_std = list(preprocess_cfg['global_translate_noise_std'])
+            self._random_flip_x = preprocess_cfg['random_flip_x']
+            self._random_flip_y = preprocess_cfg['random_flip_y']            
+        # end if
+
         self._anchor_cache = anchor_cache
     # end function
 
@@ -178,6 +180,7 @@ class MyLyftDataset(Dataset):
         points[: 3] = 0
 
         # this if block has to go before voxel_generator.generate(points, . . .) call below b/c this if block modifies points
+        # augmentations
         if self._training:
             gt_dict = {
                 'gt_boxes': lyftInfoDict['gt_boxes'],
