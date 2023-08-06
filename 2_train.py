@@ -66,7 +66,9 @@ MAKE_SUBMISSION = True
 
 # ToDo: move loss out of PointPillars class, move loss into separate file
 
-# ToDo: move voxel_generator out of the dataset class
+# ToDo: move voxel_generator out of the dataset class and into the net
+
+# ToDo: move anchor boxes out of the dataset class and into the net
 
 def main():
     np.set_printoptions(suppress=True)

@@ -148,7 +148,7 @@ class PointPillars(nn.Module):
             use_norm,
             num_input_features=model_cfg['middle_feature_extractor']['num_input_features'])
 
-        self.rpn = rpn.RPNV2(
+        self.rpn = rpn.RPN(
             use_norm=True,
             num_class=num_class,
             layer_nums=list(model_cfg['rpn']['layer_nums']),
@@ -393,14 +393,14 @@ class PointPillars(nn.Module):
         return res
     # end function
 
-    def forward(self, example):
+    def forward(self, gt_dict):
         """module's forward should always accept dict and return loss.
         """
-        pillars = example["voxels"]
-        num_points = example["num_points"]
-        pillar_coors = example["coordinates"]
+        pillars = gt_dict["voxels"]
+        num_points = gt_dict["num_points"]
+        pillar_coors = gt_dict["coordinates"]
         if len(num_points.shape) == 2:  # multi-gpu
-            num_voxel_per_batch = example["num_voxels"].cpu().numpy().reshape(-1)
+            num_voxel_per_batch = gt_dict["num_voxels"].cpu().numpy().reshape(-1)
             pillar_list = []
             num_points_list = []
             coors_list = []
@@ -412,7 +412,7 @@ class PointPillars(nn.Module):
             pillars = torch.cat(pillar_list, dim=0)
             num_points = torch.cat(num_points_list, dim=0)
             pillar_coors = torch.cat(coors_list, dim=0)
-        batch_anchors = example["anchors"]
+        batch_anchors = gt_dict["anchors"]
 
         # ToDo: what is batch_size_dev (i.e. how is this different from batch size ?? what does "dev" mean ??)
         batch_size_dev = batch_anchors.shape[0]
@@ -432,15 +432,15 @@ class PointPillars(nn.Module):
         dir_cls_preds: torch.float32, (bs, 17, 50, 50, 2), 2 => forward, backward
         """
 
-        # need to check size.
+        # need to check size
         box_preds = preds_dict["box_preds"].view(batch_size_dev, -1, self._box_coder.code_size)
         err_msg = f"num_anchors={batch_anchors.shape[1]}, but num_output={box_preds.shape[1]}. please check size"
         assert batch_anchors.shape[1] == box_preds.shape[1], err_msg
         if self.training:
-            return self.loss(example, preds_dict)
+            return self.loss(gt_dict, preds_dict)
         else:
             with torch.no_grad():
-                res = self.inference(example, preds_dict)
+                res = self.inference(gt_dict, preds_dict)
             # end with
             return res
         # end if
