@@ -151,7 +151,6 @@ class PointPillars(nn.Module):
             num_input_features=model_cfg['rpn']['num_input_features'],
             num_anchor_per_loc=target_assigner.num_anchors_per_location,
             encode_background_as_zeros=model_cfg['encode_background_as_zeros'],
-            num_groups=model_cfg['rpn']['num_groups'],
             box_code_size=target_assigner.box_coder.code_size,
             num_direction_bins=self._num_direction_bins)
 

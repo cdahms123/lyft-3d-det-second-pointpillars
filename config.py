@@ -24,7 +24,6 @@ model = {
             'num_filters': [64, 128, 256],
             'upsample_strides': [0.25, 0.5, 1],
             'num_upsample_filters': [128, 128, 128],
-            'num_groups': 32,
             'num_input_features': 64
             },
         'loss': {

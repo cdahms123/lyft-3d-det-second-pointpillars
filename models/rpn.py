@@ -3,11 +3,8 @@
 import numpy as np
 import torch
 from torch import nn
-from torchvision.models import resnet
 
-from torchplus.nn.modules.common import Empty, Sequential
-from torchplus.nn.modules.normalization import GroupNorm
-# from torchplus.tools import change_default_args
+from torchplus.nn.modules.common import Sequential
 
 class RPN(nn.Module):
     def __init__(self,
@@ -20,18 +17,18 @@ class RPN(nn.Module):
                  num_input_features,
                  num_anchor_per_loc,
                  encode_background_as_zeros,
-                 num_groups,
                  box_code_size,
                  num_direction_bins):
         super().__init__()
 
-        self._layer_strides = layer_strides
-        self._num_filters = num_filters
-        self._layer_nums = layer_nums
-        self._upsample_strides = upsample_strides
-        self._num_upsample_filters = num_upsample_filters
-        self._num_input_features = num_input_features
-        self._num_groups = num_groups
+        # self._layer_strides = layer_strides
+        # self._num_filters = num_filters
+        # self._layer_nums = layer_nums
+        # self._upsample_strides = upsample_strides
+        # self._num_upsample_filters = num_upsample_filters
+        # self._num_input_features = num_input_features
+        # self._num_groups = num_groups
+        assert len(layer_nums) >= 1, 'layer nums must be at least 1'
         assert len(layer_strides) == len(layer_nums)
         assert len(num_filters) == len(layer_nums)
         assert len(num_upsample_filters) == len(upsample_strides)
@@ -106,18 +103,18 @@ class RPN(nn.Module):
         self.conv_dir_cls = nn.Conv2d(final_num_filters, num_anchor_per_loc * num_direction_bins, 1)
     # end function
 
-    @property
-    def downsample_factor(self):
-        factor = np.prod(self._layer_strides)
-        if len(self._upsample_strides) > 0:
-            factor /= self._upsample_strides[-1]
-        return factor
-    # end function
+    # @property
+    # def downsample_factor(self):
+    #     factor = np.prod(self._layer_strides)
+    #     if len(self._upsample_strides) > 0:
+    #         factor /= self._upsample_strides[-1]
+    #     return factor
+    # # end function
 
-    def _make_layer(self, inplanes, planes, num_blocks, stride=1):
+    def _make_layer(self, inplanes, planes, num_blocks, stride):
         block = Sequential(
-            nn.ZeroPad2d(1),
-            nn.Conv2d(in_channels=inplanes, out_channels=planes, kernel_size=3, stride=stride, bias=False),
+            # nn.ZeroPad2d(1),
+            nn.Conv2d(in_channels=inplanes, out_channels=planes, kernel_size=3, stride=stride, padding=1, bias=False),
             nn.BatchNorm2d(num_features=planes, eps=1e-3, momentum=0.01),
             nn.ReLU(),
         )
@@ -133,29 +130,23 @@ class RPN(nn.Module):
 
     def forward(self, x):
         ups = []
-        stage_outputs = []
+        # stage_outputs = []
         for i in range(len(self.blocks)):
             x = self.blocks[i](x)
-            stage_outputs.append(x)
+            # stage_outputs.append(x)
             if i - self._upsample_start_idx >= 0:
                 ups.append(self.deblocks[i - self._upsample_start_idx](x))
             # end if
         # end for
 
-        if len(ups) > 0:
-            x = torch.cat(ups, dim=1)
-        # end if
+        x = torch.cat(ups, dim=1)
 
-        # # ToDo: it seems upi and stagei results are not used later, can this be removed ??
-        # res = {}
-        # for i, up in enumerate(ups):
-        #     res['up' + str(i)] = up
-        # # end for
-        # for i, out in enumerate(stage_outputs):
-        #     res['stage' + str(i)] = out
-        # # end for
-        # res["out"] = x
-        # x = res["out"]
+        # if len(ups) > 0:
+        #     x = torch.cat(ups, dim=1)
+        #     print(colored('in if', color='green', attrs=['bold']))
+        # else:
+        #     print(colored('in else', color='red', attrs=['bold']))
+        # # end if
 
         # (??)
         box_preds = self.conv_box(x)
