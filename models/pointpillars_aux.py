@@ -11,7 +11,7 @@ from torch.nn import functional as F
 
 from models.voxel_encoder import get_paddings_indicator
 from torchplus.nn.modules.common import Empty
-from torchplus.tools import change_default_args
+# from torchplus.tools import change_default_args
 
 
 class PFNLayer(nn.Module):
@@ -35,11 +35,11 @@ class PFNLayer(nn.Module):
             out_channels = out_channels // 2
         self.units = out_channels
 
-        BatchNorm1d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm1d)
-        Linear = change_default_args(bias=False)(nn.Linear)
+        # BatchNorm1d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm1d)
+        # Linear = change_default_args(bias=False)(nn.Linear)
 
-        self.linear = Linear(in_channels, self.units)
-        self.norm = BatchNorm1d(self.units)
+        self.linear = nn.Linear(in_features=in_channels, out_features=self.units, bias=False)
+        self.norm = nn.BatchNorm1d(num_features=self.units, eps=1e-3, momentum=0.01)
 
     def forward(self, inputs):
 

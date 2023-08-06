@@ -6,7 +6,7 @@ from torch.nn import functional as F
 
 # from torchplus.nn import Empty
 from torchplus.nn.modules.common import Empty
-from torchplus.tools import change_default_args
+# from torchplus.tools import change_default_args
 
 def get_paddings_indicator(actual_num, max_num, axis=0):
     """Create boolean mask by actually number of a padded tensor.
@@ -30,3 +30,6 @@ def get_paddings_indicator(actual_num, max_num, axis=0):
     paddings_indicator = actual_num.int() > max_num
     # paddings_indicator shape: [batch_size, max_num]
     return paddings_indicator
+
+
+

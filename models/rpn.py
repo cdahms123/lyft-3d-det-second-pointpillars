@@ -7,7 +7,7 @@ from torchvision.models import resnet
 
 from torchplus.nn.modules.common import Empty, Sequential
 from torchplus.nn.modules.normalization import GroupNorm
-from torchplus.tools import change_default_args
+# from torchplus.tools import change_default_args
 
 class RPN(nn.Module):
     def __init__(self,
@@ -42,9 +42,9 @@ class RPN(nn.Module):
         for val in must_equal_list:
             assert val == must_equal_list[0]
 
-        BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
-        Conv2d = change_default_args(bias=False)(nn.Conv2d)
-        ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
+        # ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
+        # Conv2d = change_default_args(bias=False)(nn.Conv2d)
+        # BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
 
         in_filters = [num_input_features, *num_filters[:-1]]
         blocks = []
@@ -62,17 +62,20 @@ class RPN(nn.Module):
                 if stride >= 1:
                     stride = np.round(stride).astype(np.int64)
                     deblock = nn.Sequential(
-                        ConvTranspose2d(num_out_filters, num_upsample_filters[i - self._upsample_start_idx],
-                                        stride, stride=stride),
-                        BatchNorm2d(num_upsample_filters[i - self._upsample_start_idx]),
+                        nn.ConvTranspose2d(in_channels=num_out_filters,
+                                           out_channels=num_upsample_filters[i - self._upsample_start_idx],
+                                           kernel_size=stride, stride=stride, bias=False),
+                        nn.BatchNorm2d(num_features=num_upsample_filters[i - self._upsample_start_idx],
+                                       eps=1e-3, momentum=0.01),
                         nn.ReLU()
                     )
                 else:
                     stride = np.round(1 / stride).astype(np.int64)
                     deblock = nn.Sequential(
-                        Conv2d(num_out_filters, num_upsample_filters[i - self._upsample_start_idx],
-                               stride, stride=stride),
-                        BatchNorm2d(num_upsample_filters[i - self._upsample_start_idx]),
+                        nn.Conv2d(num_out_filters, num_upsample_filters[i - self._upsample_start_idx],
+                                  kernel_size=stride, stride=stride, bias=False),
+                        nn.BatchNorm2d(num_features=num_upsample_filters[i - self._upsample_start_idx],
+                                       eps=1e-3, momentum=0.01),
                         nn.ReLU()
                     )
                 # end if
@@ -116,20 +119,20 @@ class RPN(nn.Module):
     # end function
 
     def _make_layer(self, inplanes, planes, num_blocks, stride=1):
-        BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
-        Conv2d = change_default_args(bias=False)(nn.Conv2d)
-        ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
+        # Conv2d = change_default_args(bias=False)(nn.Conv2d)
+        # BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)        
+        # ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
 
         block = Sequential(
             nn.ZeroPad2d(1),
-            Conv2d(inplanes, planes, 3, stride=stride),
-            BatchNorm2d(planes),
+            nn.Conv2d(in_channels=inplanes, out_channels=planes, kernel_size=3, stride=stride, bias=False),
+            nn.BatchNorm2d(num_features=planes, eps=1e-3, momentum=0.01),
             nn.ReLU(),
         )
 
         for j in range(num_blocks):
-            block.add(Conv2d(planes, planes, 3, padding=1))
-            block.add(BatchNorm2d(planes))
+            block.add(nn.Conv2d(in_channels=planes, out_channels=planes, kernel_size=3, padding=1, bias=False))
+            block.add(nn.BatchNorm2d(num_features=planes, eps=1e-3, momentum=0.01))
             block.add(nn.ReLU())
         # end for
 
