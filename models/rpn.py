@@ -21,7 +21,6 @@ class RPN(nn.Module):
                  num_input_features=128,
                  num_anchor_per_loc=2,
                  encode_background_as_zeros=True,
-                 use_groupnorm=False,
                  num_groups=32,
                  box_code_size=7,
                  num_direction_bins=2,
@@ -35,7 +34,6 @@ class RPN(nn.Module):
         self._num_upsample_filters = num_upsample_filters
         self._num_input_features = num_input_features
         self._use_norm = use_norm
-        self._use_groupnorm = use_groupnorm
         self._num_groups = num_groups
         assert len(layer_strides) == len(layer_nums)
         assert len(num_filters) == len(layer_nums)
@@ -48,20 +46,15 @@ class RPN(nn.Module):
             assert val == must_equal_list[0]
 
         if use_norm:
-            if use_groupnorm:
-                BatchNorm2d = change_default_args(
-                    num_groups=num_groups, eps=1e-3)(GroupNorm)
-            else:
-                BatchNorm2d = change_default_args(
-                    eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
+            BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
+
             Conv2d = change_default_args(bias=False)(nn.Conv2d)
-            ConvTranspose2d = change_default_args(bias=False)(
-                nn.ConvTranspose2d)
+            ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
         else:
             BatchNorm2d = Empty
             Conv2d = change_default_args(bias=True)(nn.Conv2d)
-            ConvTranspose2d = change_default_args(bias=True)(
-                nn.ConvTranspose2d)
+            ConvTranspose2d = change_default_args(bias=True)(nn.ConvTranspose2d)
+        # end if
 
         in_filters = [num_input_features, *num_filters[:-1]]
         blocks = []
@@ -79,30 +72,24 @@ class RPN(nn.Module):
                 if stride >= 1:
                     stride = np.round(stride).astype(np.int64)
                     deblock = nn.Sequential(
-                        ConvTranspose2d(
-                            num_out_filters,
-                            num_upsample_filters[i - self._upsample_start_idx],
-                            stride,
-                            stride=stride),
-                        BatchNorm2d(
-                            num_upsample_filters[i -
-                                                 self._upsample_start_idx]),
-                        nn.ReLU(),
+                        ConvTranspose2d(num_out_filters, num_upsample_filters[i - self._upsample_start_idx],
+                                        stride, stride=stride),
+                        BatchNorm2d(num_upsample_filters[i - self._upsample_start_idx]),
+                        nn.ReLU()
                     )
                 else:
                     stride = np.round(1 / stride).astype(np.int64)
                     deblock = nn.Sequential(
-                        Conv2d(
-                            num_out_filters,
-                            num_upsample_filters[i - self._upsample_start_idx],
-                            stride,
-                            stride=stride),
-                        BatchNorm2d(
-                            num_upsample_filters[i -
-                                                 self._upsample_start_idx]),
-                        nn.ReLU(),
+                        Conv2d(num_out_filters, num_upsample_filters[i - self._upsample_start_idx],
+                               stride, stride=stride),
+                        BatchNorm2d(num_upsample_filters[i - self._upsample_start_idx]),
+                        nn.ReLU()
                     )
+                # end if
                 deblocks.append(deblock)
+            # end if
+        # end for
+
         self._num_out_filters = num_out_filters
         self.blocks = nn.ModuleList(blocks)
         self.deblocks = nn.ModuleList(deblocks)
@@ -116,10 +103,14 @@ class RPN(nn.Module):
             num_cls = num_anchor_per_loc * num_class
         else:
             num_cls = num_anchor_per_loc * (num_class + 1)
+        # end if
+
         if len(num_upsample_filters) == 0:
             final_num_filters = self._num_out_filters
         else:
             final_num_filters = sum(num_upsample_filters)
+        # end if
+
         self.conv_cls = nn.Conv2d(final_num_filters, num_cls, 1)
         self.conv_box = nn.Conv2d(final_num_filters, num_anchor_per_loc * box_code_size, 1)
         
@@ -136,20 +127,14 @@ class RPN(nn.Module):
 
     def _make_layer(self, inplanes, planes, num_blocks, stride=1):
         if self._use_norm:
-            if self._use_groupnorm:
-                BatchNorm2d = change_default_args(
-                    num_groups=self._num_groups, eps=1e-3)(GroupNorm)
-            else:
-                BatchNorm2d = change_default_args(
-                    eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
+            BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
             Conv2d = change_default_args(bias=False)(nn.Conv2d)
-            ConvTranspose2d = change_default_args(bias=False)(
-                nn.ConvTranspose2d)
+            ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
         else:
             BatchNorm2d = Empty
             Conv2d = change_default_args(bias=True)(nn.Conv2d)
-            ConvTranspose2d = change_default_args(bias=True)(
-                nn.ConvTranspose2d)
+            ConvTranspose2d = change_default_args(bias=True)(nn.ConvTranspose2d)
+        # end if
 
         block = Sequential(
             nn.ZeroPad2d(1),
@@ -157,10 +142,12 @@ class RPN(nn.Module):
             BatchNorm2d(planes),
             nn.ReLU(),
         )
+
         for j in range(num_blocks):
             block.add(Conv2d(planes, planes, 3, padding=1))
             block.add(BatchNorm2d(planes))
             block.add(nn.ReLU())
+        # end for
 
         return block, planes
     # end function
@@ -173,14 +160,20 @@ class RPN(nn.Module):
             stage_outputs.append(x)
             if i - self._upsample_start_idx >= 0:
                 ups.append(self.deblocks[i - self._upsample_start_idx](x))
+            # end if
+        # end for
 
         if len(ups) > 0:
             x = torch.cat(ups, dim=1)
+        # end if
+
         res = {}
         for i, up in enumerate(ups):
             res[f"up{i}"] = up
+        # end for
         for i, out in enumerate(stage_outputs):
             res[f"stage{i}"] = out
+        # end for
         res["out"] = x
 
         x = res["out"]
@@ -190,12 +183,9 @@ class RPN(nn.Module):
         C, H, W = box_preds.shape[1:]
         box_preds = box_preds.view(-1, self._num_anchor_per_loc, self._box_code_size, H, W).permute(0, 1, 3, 4, 2).contiguous()
         cls_preds = cls_preds.view(-1, self._num_anchor_per_loc, self._num_class, H, W).permute(0, 1, 3, 4, 2).contiguous()
-        # box_preds = box_preds.permute(0, 2, 3, 1).contiguous()
-        # cls_preds = cls_preds.permute(0, 2, 3, 1).contiguous()
 
         dir_cls_preds = self.conv_dir_cls(x)
         dir_cls_preds = dir_cls_preds.view(-1, self._num_anchor_per_loc, self._num_direction_bins, H, W).permute(0, 1, 3, 4, 2).contiguous()
-        # dir_cls_preds = dir_cls_preds.permute(0, 2, 3, 1).contiguous()
 
         preds_dict = {
             "cls_preds": cls_preds,
