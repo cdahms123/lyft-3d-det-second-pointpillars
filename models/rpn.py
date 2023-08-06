@@ -20,13 +20,7 @@ class RPN(nn.Module):
         super().__init__()
 
         assert len(layer_nums) >= 1, 'layer nums must be at least 1'
-        assert len(layer_strides) == len(layer_nums)
-        assert len(num_filters) == len(layer_nums)
-        assert len(num_upsample_filters) == len(upsample_strides)
-
-        # self._upsample_start_idx = len(layer_nums) - len(upsample_strides)
-        assert len(layer_nums) == len(upsample_strides)
-
+        assert len(layer_nums) == len(layer_strides) == len(num_filters) == len(num_upsample_filters) == len(upsample_strides)
 
         must_equal_list = []
         for i in range(len(upsample_strides)):
@@ -80,21 +74,22 @@ class RPN(nn.Module):
         self._num_classes = num_classes
         self._box_code_size = box_code_size
 
+        # current settings:
+        # num_anchor_per_loc = 17
+        # num_direction_bins = 2
+        # num_classes = 9
+        # box_code_size = 7
+
         if encode_background_as_zeros:
             num_cls = num_anchor_per_loc * num_classes
         else:
             num_cls = num_anchor_per_loc * (num_classes + 1)
         # end if
 
-        if len(num_upsample_filters) == 0:
-            final_num_filters = self._num_out_filters
-        else:
-            final_num_filters = sum(num_upsample_filters)
-        # end if
+        final_num_filters = sum(num_upsample_filters)
 
         self.conv_cls = nn.Conv2d(final_num_filters, num_cls, 1)
         self.conv_box = nn.Conv2d(final_num_filters, num_anchor_per_loc * box_code_size, 1)
-        
         self.conv_dir_cls = nn.Conv2d(final_num_filters, num_anchor_per_loc * num_direction_bins, 1)
     # end function
 
@@ -123,36 +118,41 @@ class RPN(nn.Module):
                 ups.append(self.deblocks[i](x))
             # end if
         # end for
-
+        # ups: [(4, 128, 50, 50), (4, 128, 50, 50), (4, 128, 50, 50), (4, 128, 50, 50)], torch.float32       
         x = torch.cat(ups, dim=1)
+        # (4, 384, 50, 50), torch.float32
 
-        # (??)
-        box_preds = self.conv_box(x)
-        # (??)
-        C, H, W = box_preds.shape[1:]
-        box_preds = box_preds.view(-1, self._num_anchor_per_loc, self._box_code_size, H, W).permute(0, 1, 3, 4, 2).contiguous()
-        # (??)
+        _, _, H, W = x.shape
 
-        # (??)
+        # (4, 384, 50, 50)
         cls_preds = self.conv_cls(x)
-        # (??)
+        # (4, 153, 50, 50)
         cls_preds = cls_preds.view(-1, self._num_anchor_per_loc, self._num_classes, H, W).permute(0, 1, 3, 4, 2).contiguous()
-        # (??)
+        # (4, 17, 50, 50, 9), 9 => num_classes
 
-        # (??)
+        # (4, 384, 50, 50)
+        box_preds = self.conv_box(x)
+        # (4, 119, 50, 50)
+        box_preds = box_preds.view(-1, self._num_anchor_per_loc, self._box_code_size, H, W).permute(0, 1, 3, 4, 2).contiguous()
+        # (4, 17, 50, 50, 7), 7 => x, y, z, w, l, h, yaw
+
+        # (4, 384, 50, 50)
         dir_cls_preds = self.conv_dir_cls(x)
-        # (??)
+        # (4, 34, 50, 50)
         dir_cls_preds = dir_cls_preds.view(-1, self._num_anchor_per_loc, self._num_direction_bins, H, W).permute(0, 1, 3, 4, 2).contiguous()
-        # (??)
+        # (4, 17, 50, 50, 2), 2 =>forward, backward
 
         preds_dict = {
             "cls_preds": cls_preds,
             "box_preds": box_preds,
             "dir_cls_preds": dir_cls_preds
         }
-
+        # cls_preds:     (4, 17, 50, 50, 9), 9 => num_classes
+        # box_preds:     (4, 17, 50, 50, 7), 7 => x, y, z, w, l, h, yaw
+        # dir_cls_preds: (4, 17, 50, 50, 2), 2 =>forward, backward
         return preds_dict
     # end function
+# end class
 
 
 
