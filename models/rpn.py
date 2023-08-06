@@ -42,10 +42,6 @@ class RPN(nn.Module):
         for val in must_equal_list:
             assert val == must_equal_list[0]
 
-        # ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
-        # Conv2d = change_default_args(bias=False)(nn.Conv2d)
-        # BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
-
         in_filters = [num_input_features, *num_filters[:-1]]
         blocks = []
         deblocks = []
@@ -119,10 +115,6 @@ class RPN(nn.Module):
     # end function
 
     def _make_layer(self, inplanes, planes, num_blocks, stride=1):
-        # Conv2d = change_default_args(bias=False)(nn.Conv2d)
-        # BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)        
-        # ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
-
         block = Sequential(
             nn.ZeroPad2d(1),
             nn.Conv2d(in_channels=inplanes, out_channels=planes, kernel_size=3, stride=stride, bias=False),
@@ -154,25 +146,35 @@ class RPN(nn.Module):
             x = torch.cat(ups, dim=1)
         # end if
 
-        res = {}
-        for i, up in enumerate(ups):
-            res[f"up{i}"] = up
-        # end for
-        for i, out in enumerate(stage_outputs):
-            res[f"stage{i}"] = out
-        # end for
-        res["out"] = x
+        # # ToDo: it seems upi and stagei results are not used later, can this be removed ??
+        # res = {}
+        # for i, up in enumerate(ups):
+        #     res['up' + str(i)] = up
+        # # end for
+        # for i, out in enumerate(stage_outputs):
+        #     res['stage' + str(i)] = out
+        # # end for
+        # res["out"] = x
+        # x = res["out"]
 
-        x = res["out"]
+        # (??)
         box_preds = self.conv_box(x)
-        cls_preds = self.conv_cls(x)
-        # [N, C, y(H), x(W)]
+        # (??)
         C, H, W = box_preds.shape[1:]
         box_preds = box_preds.view(-1, self._num_anchor_per_loc, self._box_code_size, H, W).permute(0, 1, 3, 4, 2).contiguous()
-        cls_preds = cls_preds.view(-1, self._num_anchor_per_loc, self._num_classes, H, W).permute(0, 1, 3, 4, 2).contiguous()
+        # (??)
 
+        # (??)
+        cls_preds = self.conv_cls(x)
+        # (??)
+        cls_preds = cls_preds.view(-1, self._num_anchor_per_loc, self._num_classes, H, W).permute(0, 1, 3, 4, 2).contiguous()
+        # (??)
+
+        # (??)
         dir_cls_preds = self.conv_dir_cls(x)
+        # (??)
         dir_cls_preds = dir_cls_preds.view(-1, self._num_anchor_per_loc, self._num_direction_bins, H, W).permute(0, 1, 3, 4, 2).contiguous()
+        # (??)
 
         preds_dict = {
             "cls_preds": cls_preds,
