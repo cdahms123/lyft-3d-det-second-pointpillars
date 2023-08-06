@@ -50,16 +50,13 @@ class PointPillars(nn.Module):
         grid_size = voxel_generator.grid_size
         dense_shape = [1] + grid_size[::-1].tolist() + [vfe_num_filters[-1]]
 
-        # classes_cfg = model_cfg['target_assigner']['class_settings']
-        # num_class = len(classes_cfg)
-
         classes_cfg = []
         for class_settings_name, class_settings_config in model_cfg['target_assigner'].items():
             if 'class_settings' in class_settings_name:
                 classes_cfg.append(class_settings_config)
             # end if
         # end for
-        num_class = len(classes_cfg)
+        num_classes = len(classes_cfg)
 
         use_mcnms = [c['use_multi_class_nms'] for c in classes_cfg]
         use_rotate_nms = [c['use_rotate_nms'] for c in classes_cfg]
@@ -98,12 +95,11 @@ class PointPillars(nn.Module):
         # end if
 
         post_center_range = list(model_cfg['post_center_limit_range'])
-        use_norm = True
         output_shape = dense_shape
 
         self.name = 'voxelnet'
         self._sin_error_factor = sin_error_factor
-        self._num_class = num_class
+        self._num_classes = num_classes
         self._use_rotate_nms = all(use_rotate_nms)
         self._multiclass_nms = all(use_mcnms)
         self._nms_score_thresholds = nms_score_thresholds
@@ -136,7 +132,6 @@ class PointPillars(nn.Module):
 
         self.pillar_feature_net = pointpillars_aux.PillarFeatureNet(
             num_input_features,
-            use_norm,
             num_filters=vfe_num_filters,
             with_distance=vfe_with_distance,
             voxel_size=self.voxel_generator.voxel_size,
@@ -144,12 +139,10 @@ class PointPillars(nn.Module):
 
         self.point_pillars_scatter = pointpillars_aux.PointPillarsScatter(
             output_shape,
-            use_norm,
             num_input_features=model_cfg['middle_feature_extractor']['num_input_features'])
 
         self.rpn = rpn.RPN(
-            use_norm=True,
-            num_class=num_class,
+            num_classes=num_classes,
             layer_nums=list(model_cfg['rpn']['layer_nums']),
             layer_strides=list(model_cfg['rpn']['layer_strides']),
             num_filters=list(model_cfg['rpn']['num_filters']),
@@ -342,7 +335,7 @@ class PointPillars(nn.Module):
             cls_weights=cls_weights * importance,
             reg_targets=reg_targets,
             reg_weights=reg_weights * importance,
-            num_class=self._num_class,
+            num_classes=self._num_classes,
             encode_rad_error_by_sin=self._encode_rad_error_by_sin,
             encode_background_as_zeros=self._encode_background_as_zeros,
             box_code_size=self._box_coder.code_size,
@@ -456,14 +449,12 @@ class PointPillars(nn.Module):
         batch_cls_preds = preds_dict["cls_preds"]
         batch_box_preds = batch_box_preds.view(batch_size, -1,
                                                self._box_coder.code_size)
-        num_class_with_bg = self._num_class
+        num_classes_with_bg = self._num_classes
         if not self._encode_background_as_zeros:
-            num_class_with_bg = self._num_class + 1
+            num_classes_with_bg = self._num_classes + 1
 
-        batch_cls_preds = batch_cls_preds.view(batch_size, -1,
-                                               num_class_with_bg)
-        batch_box_preds = self._box_coder.decode_torch(batch_box_preds,
-                                                       batch_anchors)
+        batch_cls_preds = batch_cls_preds.view(batch_size, -1, num_classes_with_bg)
+        batch_box_preds = self._box_coder.decode_torch(batch_box_preds, batch_anchors)
         batch_dir_preds = preds_dict["dir_cls_preds"]
         batch_dir_preds = batch_dir_preds.view(batch_size, -1, self._num_direction_bins)
 
@@ -526,13 +517,13 @@ class PointPillars(nn.Module):
                 post_max_sizes = self._nms_post_max_sizes
                 iou_thresholds = self._nms_iou_thresholds
                 for class_idx, score_thresh, pre_ms, post_ms, iou_th in zip(
-                        range(self._num_class),
+                        range(self._num_classes),
                         score_threshs,
                         pre_max_sizes, post_max_sizes, iou_thresholds):
                     if self._nms_class_agnostic:
                         class_scores = total_scores.view(
                             feature_map_size_prod, -1,
-                            self._num_class)[..., class_idx]
+                            self._num_classes)[..., class_idx]
                         class_scores = class_scores.contiguous().view(-1)
                         class_boxes_nms = boxes.view(-1,
                                                      boxes_for_nms.shape[-1])
@@ -540,7 +531,7 @@ class PointPillars(nn.Module):
                         class_dir_labels = dir_labels
                     else:
                         anchors_range = self.target_assigner.anchors_range(class_idx)
-                        class_scores = total_scores.view(-1, self._num_class)[anchors_range[0]:anchors_range[1], class_idx]
+                        class_scores = total_scores.view(-1, self._num_classes)[anchors_range[0]:anchors_range[1], class_idx]
                         class_boxes_nms = boxes.view(-1, boxes_for_nms.shape[-1])[anchors_range[0]:anchors_range[1], :]
                         class_scores = class_scores.contiguous().view(-1)
                         class_boxes_nms = class_boxes_nms.contiguous().view(-1, boxes_for_nms.shape[-1])
@@ -598,7 +589,7 @@ class PointPillars(nn.Module):
             else:
                 # get highest score per prediction, than apply nms
                 # to remove overlapped box.
-                if num_class_with_bg == 1:
+                if num_classes_with_bg == 1:
                     top_scores = total_scores.squeeze(-1)
                     top_labels = torch.zeros(
                         total_scores.shape[0],
@@ -689,10 +680,10 @@ class PointPillars(nn.Module):
 
     def update_metrics(self, cls_loss, loc_loss, cls_preds, labels, sampled):
         batch_size = cls_preds.shape[0]
-        num_class = self._num_class
+        num_classes = self._num_classes
         if not self._encode_background_as_zeros:
-            num_class += 1
-        cls_preds = cls_preds.view(batch_size, -1, num_class)
+            num_classes += 1
+        cls_preds = cls_preds.view(batch_size, -1, num_classes)
         rpn_acc = self.rpn_acc(labels, cls_preds, sampled).numpy()[0]
         #prec, recall = self.rpn_metrics(labels, cls_preds, sampled)
         #prec = prec.numpy()
@@ -769,8 +760,6 @@ def build_anchor_generator(class_cfg):
 # end function
 
 def _get_pos_neg_loss(cls_loss, labels):
-    # cls_loss: [N, num_anchors, num_class]
-    # labels: [N, num_anchors]
     batch_size = cls_loss.shape[0]
     if cls_loss.shape[-1] == 1 or len(cls_loss.shape) == 2:
         cls_pos_loss = (labels > 0).type_as(cls_loss) * cls_loss.view(
@@ -910,7 +899,7 @@ def create_loss(loc_loss_ftor,
                 cls_weights,
                 reg_targets,
                 reg_weights,
-                num_class,
+                num_classes,
                 encode_background_as_zeros=True,
                 encode_rad_error_by_sin=True,
                 sin_error_factor=1.0,
@@ -919,12 +908,12 @@ def create_loss(loc_loss_ftor,
     batch_size = int(box_preds.shape[0])
     box_preds = box_preds.view(batch_size, -1, box_code_size)
     if encode_background_as_zeros:
-        cls_preds = cls_preds.view(batch_size, -1, num_class)
+        cls_preds = cls_preds.view(batch_size, -1, num_classes)
     else:
-        cls_preds = cls_preds.view(batch_size, -1, num_class + 1)
+        cls_preds = cls_preds.view(batch_size, -1, num_classes + 1)
     cls_targets = cls_targets.squeeze(-1)
     one_hot_targets = torchplus.nn.functional.one_hot(
-        cls_targets, depth=num_class + 1, dtype=box_preds.dtype)
+        cls_targets, depth=num_classes + 1, dtype=box_preds.dtype)
     if encode_background_as_zeros:
         one_hot_targets = one_hot_targets[..., 1:]
     if encode_rad_error_by_sin:

@@ -11,20 +11,18 @@ from torchplus.tools import change_default_args
 
 class RPN(nn.Module):
     def __init__(self,
-                 use_norm=True,
-                 num_class=2,
-                 layer_nums=(3, 5, 5),
-                 layer_strides=(2, 2, 2),
-                 num_filters=(128, 128, 256),
-                 upsample_strides=(1, 2, 4),
-                 num_upsample_filters=(256, 256, 256),
-                 num_input_features=128,
-                 num_anchor_per_loc=2,
-                 encode_background_as_zeros=True,
-                 num_groups=32,
-                 box_code_size=7,
-                 num_direction_bins=2,
-                 name='rpn'):
+                 num_classes,
+                 layer_nums,
+                 layer_strides,
+                 num_filters,
+                 upsample_strides,
+                 num_upsample_filters,
+                 num_input_features,
+                 num_anchor_per_loc,
+                 encode_background_as_zeros,
+                 num_groups,
+                 box_code_size,
+                 num_direction_bins):
         super().__init__()
 
         self._layer_strides = layer_strides
@@ -33,7 +31,6 @@ class RPN(nn.Module):
         self._upsample_strides = upsample_strides
         self._num_upsample_filters = num_upsample_filters
         self._num_input_features = num_input_features
-        self._use_norm = use_norm
         self._num_groups = num_groups
         assert len(layer_strides) == len(layer_nums)
         assert len(num_filters) == len(layer_nums)
@@ -45,16 +42,9 @@ class RPN(nn.Module):
         for val in must_equal_list:
             assert val == must_equal_list[0]
 
-        if use_norm:
-            BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
-
-            Conv2d = change_default_args(bias=False)(nn.Conv2d)
-            ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
-        else:
-            BatchNorm2d = Empty
-            Conv2d = change_default_args(bias=True)(nn.Conv2d)
-            ConvTranspose2d = change_default_args(bias=True)(nn.ConvTranspose2d)
-        # end if
+        BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
+        Conv2d = change_default_args(bias=False)(nn.Conv2d)
+        ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
 
         in_filters = [num_input_features, *num_filters[:-1]]
         blocks = []
@@ -96,13 +86,13 @@ class RPN(nn.Module):
 
         self._num_anchor_per_loc = num_anchor_per_loc
         self._num_direction_bins = num_direction_bins
-        self._num_class = num_class
+        self._num_classes = num_classes
         self._box_code_size = box_code_size
 
         if encode_background_as_zeros:
-            num_cls = num_anchor_per_loc * num_class
+            num_cls = num_anchor_per_loc * num_classes
         else:
-            num_cls = num_anchor_per_loc * (num_class + 1)
+            num_cls = num_anchor_per_loc * (num_classes + 1)
         # end if
 
         if len(num_upsample_filters) == 0:
@@ -126,15 +116,9 @@ class RPN(nn.Module):
     # end function
 
     def _make_layer(self, inplanes, planes, num_blocks, stride=1):
-        if self._use_norm:
-            BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
-            Conv2d = change_default_args(bias=False)(nn.Conv2d)
-            ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
-        else:
-            BatchNorm2d = Empty
-            Conv2d = change_default_args(bias=True)(nn.Conv2d)
-            ConvTranspose2d = change_default_args(bias=True)(nn.ConvTranspose2d)
-        # end if
+        BatchNorm2d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm2d)
+        Conv2d = change_default_args(bias=False)(nn.Conv2d)
+        ConvTranspose2d = change_default_args(bias=False)(nn.ConvTranspose2d)
 
         block = Sequential(
             nn.ZeroPad2d(1),
@@ -182,7 +166,7 @@ class RPN(nn.Module):
         # [N, C, y(H), x(W)]
         C, H, W = box_preds.shape[1:]
         box_preds = box_preds.view(-1, self._num_anchor_per_loc, self._box_code_size, H, W).permute(0, 1, 3, 4, 2).contiguous()
-        cls_preds = cls_preds.view(-1, self._num_anchor_per_loc, self._num_class, H, W).permute(0, 1, 3, 4, 2).contiguous()
+        cls_preds = cls_preds.view(-1, self._num_anchor_per_loc, self._num_classes, H, W).permute(0, 1, 3, 4, 2).contiguous()
 
         dir_cls_preds = self.conv_dir_cls(x)
         dir_cls_preds = dir_cls_preds.view(-1, self._num_anchor_per_loc, self._num_direction_bins, H, W).permute(0, 1, 3, 4, 2).contiguous()

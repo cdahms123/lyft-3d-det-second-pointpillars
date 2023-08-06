@@ -18,7 +18,6 @@ class PFNLayer(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
-                 use_norm=True,
                  last_layer=False):
         """
         Pillar Feature Net Layer.
@@ -26,7 +25,6 @@ class PFNLayer(nn.Module):
         used a single PFNLayer. This layer performs a similar role as second.pytorch.voxelnet.VFELayer.
         :param in_channels: <int>. Number of input channels.
         :param out_channels: <int>. Number of output channels.
-        :param use_norm: <bool>. Whether to include BatchNorm.
         :param last_layer: <bool>. If last_layer, there is no concatenation of features.
         """
 
@@ -37,13 +35,8 @@ class PFNLayer(nn.Module):
             out_channels = out_channels // 2
         self.units = out_channels
 
-        if use_norm:
-            BatchNorm1d = change_default_args(
-                eps=1e-3, momentum=0.01)(nn.BatchNorm1d)
-            Linear = change_default_args(bias=False)(nn.Linear)
-        else:
-            BatchNorm1d = Empty
-            Linear = change_default_args(bias=True)(nn.Linear)
+        BatchNorm1d = change_default_args(eps=1e-3, momentum=0.01)(nn.BatchNorm1d)
+        Linear = change_default_args(bias=False)(nn.Linear)
 
         self.linear = Linear(in_channels, self.units)
         self.norm = BatchNorm1d(self.units)
@@ -88,7 +81,6 @@ class PFNLayer(nn.Module):
 class PillarFeatureNet(nn.Module):
     def __init__(self,
                  num_input_features=4,
-                 use_norm=True,
                  num_filters=(64, ),
                  with_distance=False,
                  voxel_size=(0.2, 0.2, 4),
@@ -98,13 +90,11 @@ class PillarFeatureNet(nn.Module):
         The network prepares the pillar features and performs forward pass through PFNLayers. This net performs a
         similar role to SECOND's second.pytorch.voxelnet.VoxelFeatureExtractor.
         :param num_input_features: <int>. Number of input features, either x, y, z or x, y, z, r.
-        :param use_norm: <bool>. Whether to include BatchNorm.
         :param num_filters: (<int>: N). Number of features in each of the N PFNLayers.
         :param with_distance: <bool>. Whether to include Euclidean distance to points.
         :param voxel_size: (<float>: 3). Size of voxels, only utilize x and y size.
         :param pc_range: (<float>: 6). Point cloud range, only utilize x and y min.
         """
-
         super().__init__()
         self.name = 'PillarFeatureNetOld'
         assert len(num_filters) > 0
@@ -123,9 +113,7 @@ class PillarFeatureNet(nn.Module):
                 last_layer = False
             else:
                 last_layer = True
-            pfn_layers.append(
-                PFNLayer(
-                    in_filters, out_filters, use_norm, last_layer=last_layer))
+            pfn_layers.append(PFNLayer(in_filters, out_filters, last_layer=last_layer))
         self.pfn_layers = nn.ModuleList(pfn_layers)
 
         # Need pillar (voxel) size and x/y offset in order to calculate pillar offset
@@ -174,7 +162,6 @@ class PillarFeatureNet(nn.Module):
 class PointPillarsScatter(nn.Module):
     def __init__(self,
                  output_shape,
-                 use_norm=True,
                  num_input_features=64,
                  num_filters_down1=[64],
                  num_filters_down2=[64, 64],
