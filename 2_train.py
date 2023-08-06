@@ -70,6 +70,8 @@ MAKE_SUBMISSION = True
 
 # ToDo: move anchor boxes out of the dataset class and into the net
 
+# ToDo: break "RPN" out into backbone, neck, and head
+
 def main():
     np.set_printoptions(suppress=True)
 
@@ -287,10 +289,10 @@ def main():
                 metrics['loss']['loc_elem'] = loc_loss_elem
                 metrics['loss']['cls_pos_rt'] = float(cls_pos_loss.detach().cpu().numpy())
                 metrics['loss']['cls_neg_rt'] = float(cls_neg_loss.detach().cpu().numpy())
-                if model_cfg['use_direction_classifier']:
-                    dir_loss_reduced = ret_dict['dir_loss_reduced'].mean()
-                    metrics['loss']['dir_rt'] = float(dir_loss_reduced.detach().cpu().numpy())
-                # end if
+                
+                dir_loss_reduced = ret_dict['dir_loss_reduced'].mean()
+                metrics['loss']['dir_rt'] = float(dir_loss_reduced.detach().cpu().numpy())
+                
 
                 metrics['misc'] = {
                     'num_vox': int(batch['voxels'].shape[0]),

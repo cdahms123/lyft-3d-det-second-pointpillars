@@ -112,7 +112,6 @@ class PointPillars(nn.Module):
         self._nms_iou_thresholds = nms_iou_thresholds
         self._use_sigmoid_score = model_cfg['use_sigmoid_score']
         self._encode_background_as_zeros = model_cfg['encode_background_as_zeros']
-        self._use_direction_classifier = model_cfg['use_direction_classifier']
         self._num_input_features = num_input_features
         self._box_coder = target_assigner.box_coder
         self.target_assigner = target_assigner
@@ -159,7 +158,6 @@ class PointPillars(nn.Module):
             num_input_features=model_cfg['rpn']['num_input_features'],
             num_anchor_per_loc=target_assigner.num_anchors_per_location,
             encode_background_as_zeros=model_cfg['encode_background_as_zeros'],
-            use_direction_classifier=model_cfg['use_direction_classifier'],
             use_groupnorm=model_cfg['rpn']['use_groupnorm'],
             num_groups=model_cfg['rpn']['num_groups'],
             box_code_size=target_assigner.box_coder.code_size,
@@ -321,11 +319,11 @@ class PointPillars(nn.Module):
         box_preds = preds_dict["box_preds"]
         cls_preds = preds_dict["cls_preds"]
         batch_size_dev = cls_preds.shape[0]
-        self.start_timer("loss forward")
+
         labels = example['labels']
         reg_targets = example['reg_targets']
         importance = example['importance']
-        self.start_timer("prepare weight forward")
+
         cls_weights, reg_weights, cared = prepare_loss_weights(
             labels,
             pos_cls_weight=self._pos_cls_weight,
@@ -335,8 +333,7 @@ class PointPillars(nn.Module):
 
         cls_targets = labels * cared.type_as(labels)
         cls_targets = cls_targets.unsqueeze(-1)
-        self.end_timer("prepare weight forward")
-        self.start_timer("create_loss forward")
+
         loc_loss, cls_loss = create_loss(
             self._loc_loss_ftor,
             self._cls_loss_ftor,
@@ -360,23 +357,19 @@ class PointPillars(nn.Module):
         cls_neg_loss /= self._neg_cls_weight
         cls_loss_reduced = cls_loss.sum() / batch_size_dev
         cls_loss_reduced *= self._cls_loss_weight
-        loss = loc_loss_reduced + cls_loss_reduced
-        self.end_timer("create_loss forward")
-        if self._use_direction_classifier:
-            dir_targets = get_direction_target(
-                example['anchors'],
-                reg_targets,
-                dir_offset=self._dir_offset,
-                num_bins=self._num_direction_bins)
-            dir_logits = preds_dict["dir_cls_preds"].view(
-                batch_size_dev, -1, self._num_direction_bins)
-            weights = (labels > 0).type_as(dir_logits) * importance
-            weights /= torch.clamp(weights.sum(-1, keepdim=True), min=1.0)
-            dir_loss = self._dir_loss_ftor(
-                dir_logits, dir_targets, weights=weights)
-            dir_loss = dir_loss.sum() / batch_size_dev
-            loss += dir_loss * self._direction_loss_weight
-        self.end_timer("loss forward")
+
+        dir_targets = get_direction_target(example['anchors'],
+                                            reg_targets,
+                                            dir_offset=self._dir_offset,
+                                            num_bins=self._num_direction_bins)
+        dir_logits = preds_dict["dir_cls_preds"].view(batch_size_dev, -1, self._num_direction_bins)
+        weights = (labels > 0).type_as(dir_logits) * importance
+        weights /= torch.clamp(weights.sum(-1, keepdim=True), min=1.0)
+        dir_loss = self._dir_loss_ftor(dir_logits, dir_targets, weights=weights)
+        dir_loss_reduced = dir_loss.sum() / batch_size_dev
+
+        loss = loc_loss_reduced + cls_loss_reduced + dir_loss_reduced
+
         res = {
             "loss": loss,
             "cls_loss": cls_loss,
@@ -386,10 +379,10 @@ class PointPillars(nn.Module):
             "cls_preds": cls_preds,
             "cls_loss_reduced": cls_loss_reduced,
             "loc_loss_reduced": loc_loss_reduced,
-            "cared": cared,
+            "dir_loss_reduced": dir_loss_reduced,
+            "cared": cared
         }
-        if self._use_direction_classifier:
-            res["dir_loss_reduced"] = dir_loss
+
         return res
     # end function
 
@@ -427,8 +420,8 @@ class PointPillars(nn.Module):
         preds_dict = self.rpn(pseudo_image)
         """
         preds_dict items:
-        box_preds:     torch.float32, (bs, 17, 50, 50, 7), 7 => x, y, z, w, l, h, yaw
         cls_preds:     torch.float32, (bs, 17, 50, 50, 9), 9 => num classes
+        box_preds:     torch.float32, (bs, 17, 50, 50, 7), 7 => x, y, z, w, l, h, yaw
         dir_cls_preds: torch.float32, (bs, 17, 50, 50, 2), 2 => forward, backward
         """
 
@@ -472,12 +465,8 @@ class PointPillars(nn.Module):
                                                num_class_with_bg)
         batch_box_preds = self._box_coder.decode_torch(batch_box_preds,
                                                        batch_anchors)
-        if self._use_direction_classifier:
-            batch_dir_preds = preds_dict["dir_cls_preds"]
-            batch_dir_preds = batch_dir_preds.view(batch_size, -1,
-                                                   self._num_direction_bins)
-        else:
-            batch_dir_preds = [None] * batch_size
+        batch_dir_preds = preds_dict["dir_cls_preds"]
+        batch_dir_preds = batch_dir_preds.view(batch_size, -1, self._num_direction_bins)
 
         predictions_dicts = []
         post_center_range = None
@@ -494,10 +483,12 @@ class PointPillars(nn.Module):
                 cls_preds = cls_preds[a_mask]
             box_preds = box_preds.float()
             cls_preds = cls_preds.float()
-            if self._use_direction_classifier:
-                if a_mask is not None:
-                    dir_preds = dir_preds[a_mask]
-                dir_labels = torch.max(dir_preds, dim=-1)[1]
+
+
+            if a_mask is not None:
+                dir_preds = dir_preds[a_mask]
+            dir_labels = torch.max(dir_preds, dim=-1)[1]
+
             if self._encode_background_as_zeros:
                 # this don't support softmax
                 assert self._use_sigmoid_score is True
@@ -550,28 +541,25 @@ class PointPillars(nn.Module):
                         class_dir_labels = dir_labels
                     else:
                         anchors_range = self.target_assigner.anchors_range(class_idx)
-                        class_scores = total_scores.view(
-                            -1,
-                            self._num_class)[anchors_range[0]:anchors_range[1], class_idx]
-                        class_boxes_nms = boxes.view(-1,
-                            boxes_for_nms.shape[-1])[anchors_range[0]:anchors_range[1], :]
+                        class_scores = total_scores.view(-1, self._num_class)[anchors_range[0]:anchors_range[1], class_idx]
+                        class_boxes_nms = boxes.view(-1, boxes_for_nms.shape[-1])[anchors_range[0]:anchors_range[1], :]
                         class_scores = class_scores.contiguous().view(-1)
-                        class_boxes_nms = class_boxes_nms.contiguous().view(
-                            -1, boxes_for_nms.shape[-1])
-                        class_boxes = box_preds.view(-1,
-                            box_preds.shape[-1])[anchors_range[0]:anchors_range[1], :]
-                        class_boxes = class_boxes.contiguous().view(
-                            -1, box_preds.shape[-1])
-                        if self._use_direction_classifier:
-                            class_dir_labels = dir_labels.view(-1)[anchors_range[0]:anchors_range[1]]
-                            class_dir_labels = class_dir_labels.contiguous(
-                            ).view(-1)
+                        class_boxes_nms = class_boxes_nms.contiguous().view(-1, boxes_for_nms.shape[-1])
+                        class_boxes = box_preds.view(-1, box_preds.shape[-1])[anchors_range[0]:anchors_range[1], :]
+                        class_boxes = class_boxes.contiguous().view(-1, box_preds.shape[-1])
+
+                        class_dir_labels = dir_labels.view(-1)[anchors_range[0]:anchors_range[1]]
+                        class_dir_labels = class_dir_labels.contiguous().view(-1)
+                    # end if
+
                     if score_thresh > 0.0:
                         class_scores_keep = class_scores >= score_thresh
                         if class_scores_keep.shape[0] == 0:
                             selected_per_class.append(None)
                             continue
                         class_scores = class_scores[class_scores_keep]
+                    # end if
+
                     if class_scores.shape[0] != 0:
                         if score_thresh > 0.0:
                             class_boxes_nms = class_boxes_nms[
@@ -587,6 +575,8 @@ class PointPillars(nn.Module):
                             selected_per_class.append(None)
                     else:
                         selected_per_class.append(None)
+                    # end if
+
                     selected = selected_per_class[-1]
 
                     if selected is not None:
@@ -596,15 +586,16 @@ class PointPillars(nn.Module):
                                        class_idx,
                                        dtype=torch.int64,
                                        device=box_preds.device))
-                        if self._use_direction_classifier:
-                            selected_dir_labels.append(
-                                class_dir_labels[selected])
+
+                        selected_dir_labels.append(class_dir_labels[selected])
                         selected_scores.append(class_scores[selected])
+                    # end if
+                # end for
+
                 selected_boxes = torch.cat(selected_boxes, dim=0)
                 selected_labels = torch.cat(selected_labels, dim=0)
                 selected_scores = torch.cat(selected_scores, dim=0)
-                if self._use_direction_classifier:
-                    selected_dir_labels = torch.cat(selected_dir_labels, dim=0)
+                selected_dir_labels = torch.cat(selected_dir_labels, dim=0)
             else:
                 # get highest score per prediction, than apply nms
                 # to remove overlapped box.
@@ -624,8 +615,7 @@ class PointPillars(nn.Module):
                 if top_scores.shape[0] != 0:
                     if self._nms_score_thresholds[0] > 0.0:
                         box_preds = box_preds[top_scores_keep]
-                        if self._use_direction_classifier:
-                            dir_labels = dir_labels[top_scores_keep]
+                        dir_labels = dir_labels[top_scores_keep]
                         top_labels = top_labels[top_scores_keep]
                     boxes_for_nms = box_preds[:, [0, 1, 3, 4, 6]]
                     if not self._use_rotate_nms:
@@ -646,8 +636,7 @@ class PointPillars(nn.Module):
                     selected = []
                 # if selected is not None:
                 selected_boxes = box_preds[selected]
-                if self._use_direction_classifier:
-                    selected_dir_labels = dir_labels[selected]
+                selected_dir_labels = dir_labels[selected]
                 selected_labels = top_labels[selected]
                 selected_scores = top_scores[selected]
             # finally generate predictions.
@@ -655,24 +644,18 @@ class PointPillars(nn.Module):
                 box_preds = selected_boxes
                 scores = selected_scores
                 label_preds = selected_labels
-                if self._use_direction_classifier:
-                    dir_labels = selected_dir_labels
-                    period = (2 * np.pi / self._num_direction_bins)
-                    dir_rot = box_torch_ops.limit_period(
-                        box_preds[..., 6] - self._dir_offset,
-                        self._dir_limit_offset, period)
-                    box_preds[
-                        ...,
-                        6] = dir_rot + self._dir_offset + period * dir_labels.to(
-                            box_preds.dtype)
+
+                dir_labels = selected_dir_labels
+                period = (2 * np.pi / self._num_direction_bins)
+                dir_rot = box_torch_ops.limit_period(box_preds[..., 6] - self._dir_offset, self._dir_limit_offset, period)
+                box_preds[..., 6] = dir_rot + self._dir_offset + period * dir_labels.to(box_preds.dtype)
+
                 final_box_preds = box_preds
                 final_scores = scores
                 final_labels = label_preds
                 if post_center_range is not None:
-                    mask = (final_box_preds[:, :3] >=
-                            post_center_range[:3]).all(1)
-                    mask &= (final_box_preds[:, :3] <=
-                             post_center_range[3:]).all(1)
+                    mask = (final_box_preds[:, :3] >= post_center_range[:3]).all(1)
+                    mask &= (final_box_preds[:, :3] <= post_center_range[3:]).all(1)
                     predictions_dict = {
                         "box3d_lidar": final_box_preds[mask],
                         "scores": final_scores[mask],
@@ -690,16 +673,10 @@ class PointPillars(nn.Module):
                 dtype = batch_box_preds.dtype
                 device = batch_box_preds.device
                 predictions_dict = {
-                    "box3d_lidar":
-                    torch.zeros([0, box_preds.shape[-1]],
-                                dtype=dtype,
-                                device=device),
-                    "scores":
-                    torch.zeros([0], dtype=dtype, device=device),
-                    "label_preds":
-                    torch.zeros([0], dtype=top_labels.dtype, device=device),
-                    "metadata":
-                    meta,
+                    "box3d_lidar": torch.zeros([0, box_preds.shape[-1]], dtype=dtype, device=device),
+                    "scores": torch.zeros([0], dtype=dtype, device=device),
+                    "label_preds": torch.zeros([0], dtype=top_labels.dtype, device=device),
+                    "metadata": meta
                 }
             predictions_dicts.append(predictions_dict)
         return predictions_dicts

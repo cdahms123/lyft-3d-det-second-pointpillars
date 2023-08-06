@@ -21,7 +21,6 @@ class RPN(nn.Module):
                  num_input_features=128,
                  num_anchor_per_loc=2,
                  encode_background_as_zeros=True,
-                 use_direction_classifier=True,
                  use_groupnorm=False,
                  num_groups=32,
                  box_code_size=7,
@@ -111,7 +110,6 @@ class RPN(nn.Module):
         self._num_anchor_per_loc = num_anchor_per_loc
         self._num_direction_bins = num_direction_bins
         self._num_class = num_class
-        self._use_direction_classifier = use_direction_classifier
         self._box_code_size = box_code_size
 
         if encode_background_as_zeros:
@@ -123,11 +121,10 @@ class RPN(nn.Module):
         else:
             final_num_filters = sum(num_upsample_filters)
         self.conv_cls = nn.Conv2d(final_num_filters, num_cls, 1)
-        self.conv_box = nn.Conv2d(final_num_filters,
-                                  num_anchor_per_loc * box_code_size, 1)
-        if use_direction_classifier:
-            self.conv_dir_cls = nn.Conv2d(
-                final_num_filters, num_anchor_per_loc * num_direction_bins, 1)
+        self.conv_box = nn.Conv2d(final_num_filters, num_anchor_per_loc * box_code_size, 1)
+        
+        self.conv_dir_cls = nn.Conv2d(final_num_filters, num_anchor_per_loc * num_direction_bins, 1)
+    # end function
 
     @property
     def downsample_factor(self):
@@ -135,6 +132,7 @@ class RPN(nn.Module):
         if len(self._upsample_strides) > 0:
             factor /= self._upsample_strides[-1]
         return factor
+    # end function
 
     def _make_layer(self, inplanes, planes, num_blocks, stride=1):
         if self._use_norm:
@@ -165,6 +163,7 @@ class RPN(nn.Module):
             block.add(nn.ReLU())
 
         return block, planes
+    # end function
 
     def forward(self, x):
         ups = []
@@ -194,16 +193,18 @@ class RPN(nn.Module):
         # box_preds = box_preds.permute(0, 2, 3, 1).contiguous()
         # cls_preds = cls_preds.permute(0, 2, 3, 1).contiguous()
 
-        ret_dict = {
-            "box_preds": box_preds,
+        dir_cls_preds = self.conv_dir_cls(x)
+        dir_cls_preds = dir_cls_preds.view(-1, self._num_anchor_per_loc, self._num_direction_bins, H, W).permute(0, 1, 3, 4, 2).contiguous()
+        # dir_cls_preds = dir_cls_preds.permute(0, 2, 3, 1).contiguous()
+
+        preds_dict = {
             "cls_preds": cls_preds,
+            "box_preds": box_preds,
+            "dir_cls_preds": dir_cls_preds
         }
-        if self._use_direction_classifier:
-            dir_cls_preds = self.conv_dir_cls(x)
-            dir_cls_preds = dir_cls_preds.view(-1, self._num_anchor_per_loc, self._num_direction_bins, H, W).permute(0, 1, 3, 4, 2).contiguous()
-            # dir_cls_preds = dir_cls_preds.permute(0, 2, 3, 1).contiguous()
-            ret_dict["dir_cls_preds"] = dir_cls_preds
-        return ret_dict
+
+        return preds_dict
+    # end function
 
 
 

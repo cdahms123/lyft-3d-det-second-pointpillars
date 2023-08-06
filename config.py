@@ -52,7 +52,6 @@ model = {
         'encode_rad_error_by_sin': True,
         'sin_error_factor': 1.0,
 
-        'use_direction_classifier': True,
         'direction_loss_weight': 0.2,
         'num_direction_bins': 2,
         'direction_limit_offset': 0,
