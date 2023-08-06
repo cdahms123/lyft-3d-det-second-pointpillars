@@ -4,8 +4,6 @@ import numpy as np
 import torch
 from torch import nn
 
-from torchplus.nn.modules.common import Sequential
-
 class RPN(nn.Module):
     def __init__(self,
                  num_classes,
@@ -21,21 +19,18 @@ class RPN(nn.Module):
                  num_direction_bins):
         super().__init__()
 
-        # self._layer_strides = layer_strides
-        # self._num_filters = num_filters
-        # self._layer_nums = layer_nums
-        # self._upsample_strides = upsample_strides
-        # self._num_upsample_filters = num_upsample_filters
-        # self._num_input_features = num_input_features
-        # self._num_groups = num_groups
         assert len(layer_nums) >= 1, 'layer nums must be at least 1'
         assert len(layer_strides) == len(layer_nums)
         assert len(num_filters) == len(layer_nums)
         assert len(num_upsample_filters) == len(upsample_strides)
-        self._upsample_start_idx = len(layer_nums) - len(upsample_strides)
+
+        # self._upsample_start_idx = len(layer_nums) - len(upsample_strides)
+        assert len(layer_nums) == len(upsample_strides)
+
+
         must_equal_list = []
         for i in range(len(upsample_strides)):
-            must_equal_list.append(upsample_strides[i] / np.prod(layer_strides[:i + self._upsample_start_idx + 1]))
+            must_equal_list.append(upsample_strides[i] / np.prod(layer_strides[:i + 1]))
         for val in must_equal_list:
             assert val == must_equal_list[0]
 
@@ -50,24 +45,24 @@ class RPN(nn.Module):
                 layer_num,
                 stride=layer_strides[i])
             blocks.append(block)
-            if i - self._upsample_start_idx >= 0:
-                stride = upsample_strides[i - self._upsample_start_idx]
+            if i >= 0:
+                stride = upsample_strides[i]
                 if stride >= 1:
                     stride = np.round(stride).astype(np.int64)
                     deblock = nn.Sequential(
                         nn.ConvTranspose2d(in_channels=num_out_filters,
-                                           out_channels=num_upsample_filters[i - self._upsample_start_idx],
+                                           out_channels=num_upsample_filters[i],
                                            kernel_size=stride, stride=stride, bias=False),
-                        nn.BatchNorm2d(num_features=num_upsample_filters[i - self._upsample_start_idx],
+                        nn.BatchNorm2d(num_features=num_upsample_filters[i],
                                        eps=1e-3, momentum=0.01),
                         nn.ReLU()
                     )
                 else:
                     stride = np.round(1 / stride).astype(np.int64)
                     deblock = nn.Sequential(
-                        nn.Conv2d(num_out_filters, num_upsample_filters[i - self._upsample_start_idx],
+                        nn.Conv2d(num_out_filters, num_upsample_filters[i],
                                   kernel_size=stride, stride=stride, bias=False),
-                        nn.BatchNorm2d(num_features=num_upsample_filters[i - self._upsample_start_idx],
+                        nn.BatchNorm2d(num_features=num_upsample_filters[i],
                                        eps=1e-3, momentum=0.01),
                         nn.ReLU()
                     )
@@ -103,50 +98,33 @@ class RPN(nn.Module):
         self.conv_dir_cls = nn.Conv2d(final_num_filters, num_anchor_per_loc * num_direction_bins, 1)
     # end function
 
-    # @property
-    # def downsample_factor(self):
-    #     factor = np.prod(self._layer_strides)
-    #     if len(self._upsample_strides) > 0:
-    #         factor /= self._upsample_strides[-1]
-    #     return factor
-    # # end function
-
     def _make_layer(self, inplanes, planes, num_blocks, stride):
-        block = Sequential(
-            # nn.ZeroPad2d(1),
-            nn.Conv2d(in_channels=inplanes, out_channels=planes, kernel_size=3, stride=stride, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=planes, eps=1e-3, momentum=0.01),
-            nn.ReLU(),
-        )
+        layer_list = []
+        layer_list.append(nn.Conv2d(in_channels=inplanes, out_channels=planes, kernel_size=3, stride=stride, padding=1, bias=False))
+        layer_list.append(nn.BatchNorm2d(num_features=planes, eps=1e-3, momentum=0.01))
+        layer_list.append(nn.ReLU())
 
         for j in range(num_blocks):
-            block.add(nn.Conv2d(in_channels=planes, out_channels=planes, kernel_size=3, padding=1, bias=False))
-            block.add(nn.BatchNorm2d(num_features=planes, eps=1e-3, momentum=0.01))
-            block.add(nn.ReLU())
+            layer_list.append(nn.Conv2d(in_channels=planes, out_channels=planes, kernel_size=3, padding=1, bias=False))
+            layer_list.append(nn.BatchNorm2d(num_features=planes, eps=1e-3, momentum=0.01))
+            layer_list.append(nn.ReLU())
         # end for
 
-        return block, planes
+        layer_block = nn.Sequential(*layer_list)
+
+        return layer_block, planes
     # end function
 
     def forward(self, x):
         ups = []
-        # stage_outputs = []
         for i in range(len(self.blocks)):
             x = self.blocks[i](x)
-            # stage_outputs.append(x)
-            if i - self._upsample_start_idx >= 0:
-                ups.append(self.deblocks[i - self._upsample_start_idx](x))
+            if i >= 0:
+                ups.append(self.deblocks[i](x))
             # end if
         # end for
 
         x = torch.cat(ups, dim=1)
-
-        # if len(ups) > 0:
-        #     x = torch.cat(ups, dim=1)
-        #     print(colored('in if', color='green', attrs=['bold']))
-        # else:
-        #     print(colored('in else', color='red', attrs=['bold']))
-        # # end if
 
         # (??)
         box_preds = self.conv_box(x)
