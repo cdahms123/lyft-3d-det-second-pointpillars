@@ -118,7 +118,7 @@ class RPN(nn.Module):
                 ups.append(self.deblocks[i](x))
             # end if
         # end for
-        # ups: [(4, 128, 50, 50), (4, 128, 50, 50), (4, 128, 50, 50), (4, 128, 50, 50)], torch.float32       
+        # ups: [(4, 128, 50, 50), (4, 128, 50, 50), (4, 128, 50, 50), (4, 128, 50, 50)], torch.float32
         x = torch.cat(ups, dim=1)
         # (4, 384, 50, 50), torch.float32
 
