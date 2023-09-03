@@ -9,7 +9,8 @@ from torch import nn
 from torch.nn import functional as F
 import pprint
 
-from spconv.utils import VoxelGeneratorV2
+# from spconv.utils import VoxelGeneratorV2
+from spconv.pytorch.utils import PointToVoxel
 from core import region_similarity
 from core.box_coders import BevBoxCoderTorch, GroundBox3dCoderTorch
 from core.target_assigner import TargetAssigner
@@ -35,11 +36,14 @@ class LossNormType(Enum):
 # end class
 
 class PointPillars(nn.Module):
-    def __init__(self, model_cfg, measure_time=False):
+    def __init__(self, model_cfg, device, measure_time=False):
         super().__init__()
 
-        voxel_generator = self.buildVoxelGenerator(model_cfg['voxel_generator'])
+        voxel_generator = self.buildVoxelGenerator(model_cfg['voxel_generator'], device)
+
         bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
+
+
         box_coder = self.buildBoxCoder(model_cfg['box_coder'])
         target_assigner_cfg = model_cfg['target_assigner']
         target_assigner = self.buildTargetAssigner(target_assigner_cfg, bv_range, box_coder)
@@ -48,7 +52,11 @@ class PointPillars(nn.Module):
         vfe_num_filters = list(model_cfg['voxel_feature_extractor']['num_filters'])
         vfe_with_distance = model_cfg['voxel_feature_extractor']['with_distance']
         grid_size = voxel_generator.grid_size
-        dense_shape = [1] + grid_size[::-1].tolist() + [vfe_num_filters[-1]]
+
+
+        # dense_shape = [1] + grid_size[::-1].tolist() + [vfe_num_filters[-1]]
+        dense_shape = [1] + grid_size[::-1] + [vfe_num_filters[-1]]
+
 
         classes_cfg = []
         for class_settings_name, class_settings_config in model_cfg['target_assigner'].items():
@@ -134,7 +142,7 @@ class PointPillars(nn.Module):
             num_input_features,
             num_filters=vfe_num_filters,
             with_distance=vfe_with_distance,
-            voxel_size=self.voxel_generator.voxel_size,
+            voxel_size=self.voxel_generator.vsize[::-1],
             pc_range=self.voxel_generator.point_cloud_range)
 
         self.point_pillars_scatter = pointpillars_aux.PointPillarsScatter(
@@ -176,12 +184,17 @@ class PointPillars(nn.Module):
         self._time_count_dict = {}
     # end function
 
-    def buildVoxelGenerator(self, voxel_generator_config):
-        voxel_generator = VoxelGeneratorV2(
-            voxel_size=list(voxel_generator_config['voxel_size']),
-            point_cloud_range=list(voxel_generator_config['point_cloud_range']),
-            max_num_points=voxel_generator_config['max_number_of_points_per_voxel'],
-            max_voxels=20000)
+    def buildVoxelGenerator(self, voxel_generator_config, device):
+        voxel_generator = PointToVoxel(
+            vsize_xyz=list(voxel_generator_config['voxel_size']),
+            coors_range_xyz=list(voxel_generator_config['point_cloud_range']),
+            num_point_features=4,
+            max_num_voxels=20000,
+            max_num_points_per_voxel=voxel_generator_config['max_number_of_points_per_voxel'],
+            device=device)
+
+        voxel_generator.point_cloud_range = np.array(voxel_generator_config['point_cloud_range'], dtype=np.float32)
+
         return voxel_generator
     # end function
 

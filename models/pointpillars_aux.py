@@ -195,6 +195,19 @@ class PointPillarsScatter(nn.Module):
 
             # Only include non-empty pillars
             batch_mask = coords[:, 0] == batch_itt
+
+            print('\n')
+            print('coords: ')
+            print(coords.shape)
+            print(coords)
+
+            print('\n')
+            print('batch_mask: ')
+            print(batch_mask.shape)
+            print(batch_mask)
+
+            print('\n\n')
+
             this_coords = coords[batch_mask, :]
             indices = this_coords[:, 2] * self.nx + this_coords[:, 3]
             indices = indices.type(torch.long)

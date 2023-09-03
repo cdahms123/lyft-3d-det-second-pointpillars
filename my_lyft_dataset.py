@@ -32,7 +32,8 @@ class MyLyftDataset(Dataset):
                  model_config,
                  training: bool,
                  voxel_generator,
-                 target_assigner):
+                 target_assigner,
+                 device):
         print('in MyLyftDataset init')
 
         self.lyft = lyft
@@ -43,7 +44,10 @@ class MyLyftDataset(Dataset):
         out_size_factor = get_downsample_factor(model_config)
         assert out_size_factor > 0
 
-        grid_size = voxel_generator.grid_size
+        # ToDo: not sure which of these is correct ??
+        grid_size = np.array(voxel_generator.grid_size[::-1])
+        # grid_size = np.array(voxel_generator.grid_size)
+
         feature_map_size = grid_size[:2] // out_size_factor
         feature_map_size = [*feature_map_size, 1][::-1]
 
@@ -93,6 +97,8 @@ class MyLyftDataset(Dataset):
             self._random_flip_x = preprocess_cfg['random_flip_x']
             self._random_flip_y = preprocess_cfg['random_flip_y']            
         # end if
+
+        self._device = device
 
         self._anchor_cache = anchor_cache
     # end function
@@ -218,12 +224,48 @@ class MyLyftDataset(Dataset):
             gt_dict['gt_boxes'][:, 6] = box_np_ops.limit_period(gt_dict['gt_boxes'][:, 6], offset=0.5, period=2 * np.pi)
         # end if
 
-        voxelDict = self._voxel_generator.generate(points, self._max_voxels)
+        # voxelDict = self._voxel_generator.generate(points, self._max_voxels)
+
+        
+
+        points = torch.tensor(points, device=self._device)
+        # points = torch.from_numpy(points)
+
+        # ToDo: fix this back and forth conversion !!
+        voxels, coordinates, num_points = self._voxel_generator(points)
+
+        print('\n' + 'coordinates: ')
+        print(coordinates.shape)
+        print(coordinates)
+        print('\n')
+
+        voxels = voxels.detach().cpu().numpy()
+        coordinates = coordinates.detach().cpu().numpy()
+        num_points = num_points.detach().cpu().numpy()
+
+        # ToDo: not sure about this yet ??
+        # coordinates = np.flip(coordinates, axis=1)
+
+        # print('\n' + 'voxels: ')
+        # print(voxels)
+
+        # print('\n' + 'coordinates: ')
+        # print(type(coordinates))
+        # print(coordinates.dtype)
+        # print(coordinates.shape)
+        # print(coordinates)
+
+        # print('\n' + 'num_points: ')
+        # print(num_points)
+
+        # print('\n\n')
+        # quit()
+
         itemDict = {
-            'voxels': voxelDict['voxels'],
-            'num_points': voxelDict['num_points_per_voxel'],
-            'coordinates': voxelDict['coordinates'],
-            'num_voxels': np.array([voxelDict['voxels'].shape[0]], dtype=np.int64),
+            'voxels': voxels,
+            'num_points': num_points,
+            'coordinates': coordinates,
+            'num_voxels': np.array([voxels.shape[0]], dtype=np.int64),
             'metrics': {},
             'anchors': self._anchor_cache['anchors'],
             'metadata': {'token': lyftInfoDict['token']}

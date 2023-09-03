@@ -77,11 +77,11 @@ def main():
 
     # check GPU availability
     if torch.cuda.is_available():
-        device = 'cuda'
-        print(termcolor.colored('\n' + 'using GPU' + '\n', 'green'))
+        device = torch.device('cuda')
+        print(termcolor.colored('\n' + 'using GPU' + '\n', 'green', attrs=['bold']))
     else:
-        device = 'cpu'
-        print(termcolor.colored('\n' + 'GPU does not seem to be available, using CPU' + '\n', 'red'))
+        device = torch.device('cpu')
+        print(termcolor.colored('\n' + 'GPU does not seem to be available, using CPU' + '\n', 'red', attrs=['bold']))
     # end if
 
     # # check if the results directory already exists, if so show an error and bail
@@ -101,7 +101,7 @@ def main():
     train_cfg = config.train_config
 
     # instantiate the net
-    net = PointPillars(model_cfg, MEASURE_TIME)
+    net = PointPillars(model_cfg, device, MEASURE_TIME)
     net = net.to(device)
     target_assigner = net.target_assigner
     voxel_generator = net.voxel_generator
@@ -164,7 +164,8 @@ def main():
         model_cfg,
         training=True,
         voxel_generator=voxel_generator,
-        target_assigner=target_assigner)
+        target_assigner=target_assigner,
+        device=device)
     evalDataset = MyLyftDataset(
         lyftTrainVal,
         valFrameIds,
@@ -173,7 +174,8 @@ def main():
         model_cfg,
         training=False,
         voxel_generator=voxel_generator,
-        target_assigner=target_assigner)
+        target_assigner=target_assigner,
+        device=device)
 
     trainDataLoader = torch.utils.data.DataLoader(
         trainDataset,
