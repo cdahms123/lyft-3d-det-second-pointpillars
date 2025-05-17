@@ -9,7 +9,8 @@ from torch import nn
 from torch.nn import functional as F
 import pprint
 
-from spconv.utils import VoxelGeneratorV2
+# from spconv.utils import VoxelGeneratorV2
+from spconv.pytorch.utils import PointToVoxel
 from core import region_similarity
 from core.box_coders import BevBoxCoderTorch, GroundBox3dCoderTorch
 from core.target_assigner import TargetAssigner
@@ -35,8 +36,10 @@ class LossNormType(Enum):
 # end class
 
 class PointPillars(nn.Module):
-    def __init__(self, model_cfg, measure_time=False):
+    def __init__(self, model_cfg, device, measure_time=False):
         super().__init__()
+
+        self.device = device
 
         voxel_generator = self.buildVoxelGenerator(model_cfg['voxel_generator'])
         bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
@@ -177,11 +180,20 @@ class PointPillars(nn.Module):
     # end function
 
     def buildVoxelGenerator(self, voxel_generator_config):
-        voxel_generator = VoxelGeneratorV2(
-            voxel_size=list(voxel_generator_config['voxel_size']),
-            point_cloud_range=list(voxel_generator_config['point_cloud_range']),
-            max_num_points=voxel_generator_config['max_number_of_points_per_voxel'],
-            max_voxels=20000)
+        # voxel_generator = VoxelGeneratorV2(
+        #     voxel_size=list(voxel_generator_config['voxel_size']),
+        #     point_cloud_range=list(voxel_generator_config['point_cloud_range']),
+        #     max_num_points=voxel_generator_config['max_number_of_points_per_voxel'],
+        #     max_voxels=20000)
+
+        voxel_generator: PointToVoxel = PointToVoxel(
+            vsize_xyz=list(voxel_generator_config['voxel_size']),
+            coors_range_xyz=list(voxel_generator_config['point_cloud_range']),
+            max_num_voxels=20000,
+            max_num_points_per_voxel=voxel_generator_config['max_number_of_points_per_voxel'],
+            device=self.device
+        )
+
         return voxel_generator
     # end function
 
