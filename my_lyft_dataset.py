@@ -561,24 +561,14 @@ def my_collate_fn(list_of_dicts: List[Dict]):
     batch_dict = {}
     for item_name, my_list in dict_of_lists.items():
 
-        # print('\n' + 'item_name: ')
-        # print(item_name)
-
-        # print('\n' + 'my_list: ')
-        # print(type(my_list))
-        # print(f'{len(my_list) = }')
-
-        # print('\n' + 'my_list[0]: ')
-        # print(type(my_list[0]))
-        # print(my_list[0].dtype)
-        # print(f'{len(my_list[0]) = }')
-
-        # print('\n')
-
         if item_name in ['voxels', 'num_points', 'gt_names']:
-            my_list = [item.cpu().numpy() for item in my_list]
+            # ToDo: It's inconsistent that some of these 3 item names are PyTorch Tensors and others are NumPy Arrays,
+            #       need to work out a better way to do this ??
+            for i in range(len(my_list)):
+                if isinstance(my_list[i], torch.Tensor):
+                    my_list[i] = my_list[i].cpu().numpy()
+
             batch_dict[item_name] = my_list
-            # batch_dict[item_name] = np.array(my_list, axis=0)
         elif item_name == 'coordinates':
             coordinates = []
             for idx, coords in enumerate(my_list):
