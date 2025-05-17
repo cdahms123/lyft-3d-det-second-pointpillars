@@ -238,13 +238,22 @@ class MyLyftDataset(Dataset):
 
         points = torch.tensor(points, dtype=torch.float32, device=self.device)
 
-        voxelDict = self._voxel_generator.generate_voxel_with_id(points)
+
+        # voxels: voxels
+        # indices: quantized coords
+        # num_per_voxel: number of points in a voxel
+        # pc_voxel_id: voxel id for every point. if not exists, -1
+
+        # spconv 1.x
+        # voxelDict = self._voxel_generator.generate_voxel_with_id(points)
+
+        voxels, indices, num_points_per_voxel, pc_voxel_id = self._voxel_generator.generate_voxel_with_id(points)
 
         itemDict = {
-            'voxels': voxelDict['voxels'],
-            'num_points': voxelDict['num_points_per_voxel'],
-            'coordinates': voxelDict['coordinates'],
-            'num_voxels': np.array([voxelDict['voxels'].shape[0]], dtype=np.int64),
+            'voxels': voxels,
+            'num_points': num_points_per_voxel,
+            'coordinates': indices,
+            'num_voxels': np.array([voxels.shape[0]], dtype=np.int64),
             'metrics': {},
             'anchors': self._anchor_cache['anchors'],
             'metadata': {'token': lyftInfoDict['token']}
