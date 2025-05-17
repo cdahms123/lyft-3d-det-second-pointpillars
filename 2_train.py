@@ -101,7 +101,7 @@ def main():
     train_cfg = config.train_config
 
     # instantiate the net
-    net = PointPillars(model_cfg, MEASURE_TIME)
+    net = PointPillars(model_cfg, device, MEASURE_TIME)
     net = net.to(device)
     target_assigner = net.target_assigner
     voxel_generator = net.voxel_generator
