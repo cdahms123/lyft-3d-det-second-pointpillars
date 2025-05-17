@@ -526,7 +526,80 @@ def get_metric_overall_ap(iouThresholds, output_dir, class_names):
     return metric, overall_ap
 # end function
 
-def example_convert_to_torch(batch: Dict, float_dtype, device) -> dict:
+def my_collate_fn(list_of_dicts: List[Dict]):
+    """
+    This function is a bit confusing and requires some explanation.
+
+    The input parameter to this function is a list of itemDicts as returned by MyLyftDataset __getitem__,
+    and list_of_dicts's length will be equal to the batch size.
+
+    If this function was not used, the main training loop would crash when the DataLoaders are iterated
+    through because the size of the value of 'voxels' is not the same from one item_dict to the next, therefore
+    if this function was not used, the PyTorch built in batching algorithm, which calls torch.stack, would be
+    used and a crash would occur.
+
+    For the input list_of_dicts, supposing batch size = 4, list_of_dicts looks like this:
+    list_of_dicts = [ itemDict0, itemDict1, itemDict2, itemDict3 ]
+    where each item_dict has the following keys:
+    voxels, num_points, coordinates, num_voxels, metrics, anchors, gt_names, labels, reg_targets, importance, metadata
+    """
+
+    # The first for loop changes the format from a list of dictionaries
+    # to a single dictionary where each value is a list of 4 items:
+    dict_of_lists = dict()
+    for item_dict in list_of_dicts:
+        if item_dict is not None:
+            for key, val in item_dict.items():
+                if key not in dict_of_lists:
+                    dict_of_lists[key] = list()
+                dict_of_lists[key].append(val)
+            # end for
+        # end if
+    # end for
+
+    # This 2nd for loop changes the format to the necessary format to pass into the SECOND net
+    batch_dict = {}
+    for item_name, my_list in dict_of_lists.items():
+
+        # print('\n' + 'item_name: ')
+        # print(item_name)
+
+        # print('\n' + 'my_list: ')
+        # print(type(my_list))
+        # print(f'{len(my_list) = }')
+
+        # print('\n' + 'my_list[0]: ')
+        # print(type(my_list[0]))
+        # print(my_list[0].dtype)
+        # print(f'{len(my_list[0]) = }')
+
+        # print('\n')
+
+        if item_name in ['voxels', 'num_points', 'gt_names']:
+            my_list = [item.cpu().numpy() for item in my_list]
+            batch_dict[item_name] = my_list
+            # batch_dict[item_name] = np.array(my_list, axis=0)
+        elif item_name == 'coordinates':
+            coordinates = []
+            for idx, coords in enumerate(my_list):
+                coords = coords.cpu().numpy()
+                coor_pad = np.pad(coords, ((0, 0), (1, 0)), mode='constant', constant_values=idx)
+                coordinates.append(coor_pad)
+            batch_dict[item_name] = np.concatenate(coordinates, axis=0)
+        elif item_name in ['metrics', 'metadata']:
+            batch_dict[item_name] = my_list
+        elif item_name in ['num_voxels', 'anchors', 'labels', 'reg_targets', 'importance']:
+            batch_dict[item_name] = np.stack(my_list, axis=0)
+        else:
+            raise ValueError('error in my_collate_fn, item_name ' + str(item_name) + ' is not recognized')
+        # end if
+    # end for
+
+    # batch_dict as returned here is exactly the same as batch_dict provided by DataLoaders in the main training loop
+    return batch_dict
+# end function
+
+def convert_batch_to_torch(batch: Dict, float_dtype, device) -> dict:
     torchBatch = {}
     for key, v in batch.items():
         if key in ['voxels', 'anchors', 'reg_targets', 'importance']:
@@ -538,64 +611,10 @@ def example_convert_to_torch(batch: Dict, float_dtype, device) -> dict:
         elif key in ['metrics', 'gt_names', 'metadata']:
             torchBatch[key] = v
         else:
-            raise ValueError('error in example_convert_to_torch, key ' + str(key) + ' is not recognized')
+            raise ValueError('error in convert_batch_to_torch, key ' + str(key) + ' is not recognized')
         # end if
     # end for
     return torchBatch
-# end function
-
-def my_collate_fn(itemDictList: List[Dict]):
-    """
-    This function is a bit confusing and requires some explanation.
-
-    The input parameter to this function is a list of itemDicts as returned by MyLyftDataset __getitem__,
-    and itemDictList's length will be equal to the batch size.
-
-    If this function was not used, the main training loop would crash when the DataLoaders are iterated
-    through because the size of the value of 'voxels' is not the same from one itemDict to the next, therefore
-    if this function was not used, the PyTorch built in batching algorithm, which calls torch.stack, would be
-    used and a crash would occur.
-
-    For the input itemDictList, supposing batch size = 4, itemDictList looks like this:
-    itemDictList = [ itemDict0, itemDict1, itemDict2, itemDict3 ]
-    where each itemDict has the following keys:
-    voxels, num_points, coordinates, num_voxels, metrics, anchors, gt_names, labels, reg_targets, importance, metadata
-    """
-
-    # The first for loop changes the format from a list of dictionaries
-    # to a single dictionary where each value is a list of 4 items:
-    itemDictOfLists = dict()
-    for itemDict in itemDictList:
-        if itemDict is not None:
-            for key, val in itemDict.items():
-                if key not in itemDictOfLists: itemDictOfLists[key] = list()
-                itemDictOfLists[key].append(val)
-            # end for
-        # end if
-    # end for
-
-    # This 2nd for loop changes the format to the necessary format to pass into the SECOND net
-    batch = {}
-    for key, elems in itemDictOfLists.items():
-        if key in ['voxels', 'num_points', 'gt_names']:
-            batch[key] = np.concatenate(elems, axis=0)
-        elif key == 'coordinates':
-            coors = []
-            for i, coor in enumerate(elems):
-                coor_pad = np.pad(coor, ((0, 0), (1, 0)), mode='constant', constant_values=i)
-                coors.append(coor_pad)
-            batch[key] = np.concatenate(coors, axis=0)
-        elif key in ['metrics', 'metadata']:
-            batch[key] = elems
-        elif key in ['num_voxels', 'anchors', 'labels', 'reg_targets', 'importance']:
-            batch[key] = np.stack(elems, axis=0)
-        else:
-            raise ValueError('error in my_collate_fn, key ' + str(key) + ' is not recognized')
-        # end if
-    # end for
-
-    # batch as returned here is exactly the same as batch provided by DataLoaders in the main training loop
-    return batch
 # end function
 
 def second_det_to_lyft_box(detection):

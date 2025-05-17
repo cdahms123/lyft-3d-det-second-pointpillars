@@ -224,13 +224,16 @@ def main():
                 continue
             # end if
 
+            # at this point, verify batch is a dictionary
+            assert isinstance(batch, dict)
+
             time_metrics = batch['metrics']
             batch.pop('metrics')
 
             batch_size = batch['anchors'].shape[0]
 
             # convert batch from a dictionary of non-tensors to a dictionary of tensors
-            batch = my_lyft_dataset.example_convert_to_torch(batch, float_dtype, device)
+            batch = my_lyft_dataset.convert_batch_to_torch(batch, float_dtype, device)
 
             # run batch through the net
             ret_dict = net(batch)
@@ -338,7 +341,7 @@ def main():
                         continue
                     # end if
 
-                    batch = my_lyft_dataset.example_convert_to_torch(batch, float_dtype, device)
+                    batch = my_lyft_dataset.convert_batch_to_torch(batch, float_dtype, device)
 
                     currentDetections = net(batch)
 
@@ -459,7 +462,7 @@ def main():
                 continue
             # end if
 
-            batch = my_lyft_dataset.example_convert_to_torch(batch, float_dtype, device)
+            batch = my_lyft_dataset.convert_batch_to_torch(batch, float_dtype, device)
 
             dets = net(batch)
 
