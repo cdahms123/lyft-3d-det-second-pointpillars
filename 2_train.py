@@ -77,10 +77,10 @@ def main():
 
     # check GPU availability
     if torch.cuda.is_available():
-        device = 'cuda'
+        device = torch.device("cuda")
         print(termcolor.colored('\n' + 'using GPU' + '\n', 'green'))
     else:
-        device = 'cpu'
+        device = torch.device("cpu")
         print(termcolor.colored('\n' + 'GPU does not seem to be available, using CPU' + '\n', 'red'))
     # end if
 
