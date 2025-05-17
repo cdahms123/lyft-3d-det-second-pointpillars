@@ -18,6 +18,8 @@ import pprint
 import torch
 from torch.utils.data import Dataset
 
+from spconv.pytorch.utils import PointToVoxel
+
 # local imports
 from core import preprocess as prep
 from core import box_np_ops
@@ -31,7 +33,7 @@ class MyLyftDataset(Dataset):
                  input_reader_config,
                  model_config,
                  training: bool,
-                 voxel_generator,
+                 voxel_generator: PointToVoxel,
                  target_assigner):
         print('in MyLyftDataset init')
 
@@ -43,7 +45,20 @@ class MyLyftDataset(Dataset):
         out_size_factor = get_downsample_factor(model_config)
         assert out_size_factor > 0
 
-        grid_size = voxel_generator.grid_size
+        # ToDo: Should grid size be reversed here ??
+        #       It seems to be [1, 400, 400], I suspect it should be the other way around
+        grid_size = np.array(voxel_generator.grid_size, dtype=np.int64)
+
+        print('\n' + 'grid_size: ')
+        print(type(grid_size))
+        print(grid_size)
+
+        print('\n' + '')
+        print(type(out_size_factor))
+        print(out_size_factor)
+
+        print('\n')
+
         feature_map_size = grid_size[:2] // out_size_factor
         feature_map_size = [*feature_map_size, 1][::-1]
 

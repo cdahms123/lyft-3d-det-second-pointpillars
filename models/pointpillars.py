@@ -49,14 +49,6 @@ class PointPillars(nn.Module):
         # spconv 1.x
         # bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
 
-
-        print('\n' + 'voxel_generator.coors_range: ')
-        print(type(voxel_generator.coors_range))
-        print(voxel_generator.coors_range)
-        print('\n')
-
-        print('\n' + f'{voxel_generator.coors_range[0] = }' + '\n')
-
         # bv_range = voxel_generator.coors_range[[0, 1, 3, 4]]
         bv_range = [voxel_generator.coors_range[0],
                     voxel_generator.coors_range[1],
