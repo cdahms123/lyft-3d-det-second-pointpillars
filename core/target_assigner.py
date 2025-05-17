@@ -187,17 +187,9 @@ class TargetAssigner:
                 self._feature_map_sizes[idx] = feature_map_size
             anchors = anchor_generator.generate(fsize)
 
-            print('\n' + 'anchors: ')
-            print(type(anchors))
-            print(anchors)
-
             print('\n' + 'fsize: ')
             print(type(fsize))
             print(fsize)
-
-            print('\n' + 'self.box_ndim: ')
-            print(type(self.box_ndim))
-            print(self.box_ndim)
 
             print('\n')
 

@@ -4,48 +4,21 @@ import torch
 from termcolor import colored
 
 
-# # check GPU availability
-# if torch.cuda.is_available():
-#     device = 'cuda'
-#     print(colored('\n' + 'using GPU' + '\n', 'green'))
-# else:
-#     device = 'cpu'
-#     print(colored('\n' + 'GPU does not seem to be available, using CPU' + '\n', 'red'))
-# # end if
+DIM_0_SIZE = 60614
 
 
-# print('\n' + 'device: ')
-# print(type(device))
-# print(device)
+coords = torch.randint(low=0, high=5000, size=(DIM_0_SIZE, 4), dtype=torch.int32)
 
-# print('\n')
+batch_mask = torch.randint(0, 2, (DIM_0_SIZE,), dtype=torch.bool)
 
 
+this_coords = coords[batch_mask, :]
 
-
-# check GPU availability
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-    # device = torch.device("cuda:0")
-    print(colored('\n' + 'using GPU' + '\n', 'green'))
-else:
-    device = torch.device("cpu:0")
-    print(colored('\n' + 'GPU does not seem to be available, using CPU' + '\n', 'red'))
-# end if
-
-
-
-
-print('\n' + 'device: ')
-print(type(device))
-print(device)
+print('\n' + 'this_coords: ')
+print(type(this_coords))
+print(this_coords.dtype)
+print(this_coords.shape)
 
 print('\n')
-
-
-
-
-
-
 
 

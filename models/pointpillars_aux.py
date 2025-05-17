@@ -195,6 +195,19 @@ class PointPillarsScatter(nn.Module):
 
             # Only include non-empty pillars
             batch_mask = coords[:, 0] == batch_itt
+
+            print('\n' + 'coords: ')
+            print(type(coords))
+            print(coords.dtype)
+            print(coords.shape)
+
+            print('\n' + 'batch_mask: ')
+            print(type(batch_mask))
+            print(batch_mask.dtype)
+            print(batch_mask.shape)
+
+            print('\n')
+
             this_coords = coords[batch_mask, :]
             indices = this_coords[:, 2] * self.nx + this_coords[:, 3]
             indices = indices.type(torch.long)
@@ -211,6 +224,6 @@ class PointPillarsScatter(nn.Module):
         batch_canvas = torch.stack(batch_canvas, 0)
 
         # Undo the column stacking to final 4-dim tensor
-        batch_canvas = batch_canvas.view(batch_size, self.nchannels, self.ny,
-                                         self.nx)
+        batch_canvas = batch_canvas.view(batch_size, self.nchannels, self.ny, self.nx)
+
         return batch_canvas
