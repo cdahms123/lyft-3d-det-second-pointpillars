@@ -34,12 +34,15 @@ class MyLyftDataset(Dataset):
                  model_config,
                  training: bool,
                  voxel_generator: PointToVoxel,
-                 target_assigner):
+                 target_assigner,
+                 device):
         print('in MyLyftDataset init')
 
         self.lyft = lyft
         self.frameIds = frameIds
         self.idxToFrameIdDict = idxToFrameIdDict
+
+        self.device = device
 
         preprocess_cfg = input_reader_config['preprocess']
         out_size_factor = get_downsample_factor(model_config)
@@ -47,17 +50,7 @@ class MyLyftDataset(Dataset):
 
         # ToDo: Should grid size be reversed here ??
         #       It seems to be [1, 400, 400], I suspect it should be the other way around
-        grid_size = np.array(voxel_generator.grid_size, dtype=np.int64)
-
-        print('\n' + 'grid_size: ')
-        print(type(grid_size))
-        print(grid_size)
-
-        print('\n' + '')
-        print(type(out_size_factor))
-        print(out_size_factor)
-
-        print('\n')
+        grid_size = np.array(voxel_generator.grid_size[::-1], dtype=np.int64)
 
         feature_map_size = grid_size[:2] // out_size_factor
         feature_map_size = [*feature_map_size, 1][::-1]
@@ -226,14 +219,27 @@ class MyLyftDataset(Dataset):
             gt_dict['gt_boxes'], points = prep.global_rotation_v2(gt_dict['gt_boxes'], points, *self._global_rotation_noise)
             gt_dict['gt_boxes'], points = prep.global_scaling_v2(gt_dict['gt_boxes'], points, *self._global_scaling_noise)
             prep.global_translate_(gt_dict['gt_boxes'], points, self._global_translate_noise_std)
-            bv_range = self._voxel_generator.point_cloud_range[[0, 1, 3, 4]]
+
+            # bv_range = self._voxel_generator.coors_range[[0, 1, 3, 4]]
+
+            bv_range = [self._voxel_generator.coors_range[0],
+                        self._voxel_generator.coors_range[1],
+                        self._voxel_generator.coors_range[3],
+                        self._voxel_generator.coors_range[4]]
+
             mask = prep.filter_gt_box_outside_range_by_center(gt_dict['gt_boxes'], bv_range)
             self._dict_select(gt_dict, mask)
             # limit rad to [-pi, pi]
             gt_dict['gt_boxes'][:, 6] = box_np_ops.limit_period(gt_dict['gt_boxes'][:, 6], offset=0.5, period=2 * np.pi)
         # end if
 
-        voxelDict = self._voxel_generator.generate(points, self._max_voxels)
+        # spconv 1.x
+        # voxelDict = self._voxel_generator.generate(points, self._max_voxels)
+
+        points = torch.tensor(points, dtype=torch.float32, device=self.device)
+
+        voxelDict = self._voxel_generator.generate_voxel_with_id(points)
+
         itemDict = {
             'voxels': voxelDict['voxels'],
             'num_points': voxelDict['num_points_per_voxel'],

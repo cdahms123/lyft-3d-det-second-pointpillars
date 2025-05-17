@@ -105,6 +105,7 @@ def main():
     net = net.to(device)
     target_assigner = net.target_assigner
     voxel_generator = net.voxel_generator
+    # ToDo: There is likely something severly wrong here, num parameters is printing out as 66 !?!?
     print('num parameters:', len(list(net.parameters())))
 
     optimizer = torch.optim.Adam(net.parameters())
@@ -164,7 +165,8 @@ def main():
         model_cfg,
         training=True,
         voxel_generator=voxel_generator,
-        target_assigner=target_assigner)
+        target_assigner=target_assigner,
+        device=device)
     evalDataset = MyLyftDataset(
         lyftTrainVal,
         valFrameIds,
@@ -173,7 +175,8 @@ def main():
         model_cfg,
         training=False,
         voxel_generator=voxel_generator,
-        target_assigner=target_assigner)
+        target_assigner=target_assigner,
+        device=device)
 
     trainDataLoader = torch.utils.data.DataLoader(
         trainDataset,
@@ -438,7 +441,8 @@ def main():
         config.model['second'],
         training=False,
         voxel_generator=net.voxel_generator,
-        target_assigner=net.target_assigner)
+        target_assigner=net.target_assigner,
+        device=device)
     testDataLoader = torch.utils.data.DataLoader(
         testDataset,
         batch_size=TEST_BATCH_SIZE,

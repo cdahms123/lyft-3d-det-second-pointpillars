@@ -181,13 +181,28 @@ class TargetAssigner:
             feature_map_sizes = [feature_map_size] * len(self._anchor_generators)
         idx = 0
         for anchor_generator, match_thresh, unmatch_thresh, fsize in zip(
-                self._anchor_generators, matched_thresholds,
-                unmatched_thresholds, feature_map_sizes):
+                self._anchor_generators, matched_thresholds, unmatched_thresholds, feature_map_sizes):
             if len(fsize) == 0:
                 fsize = feature_map_size
                 self._feature_map_sizes[idx] = feature_map_size
             anchors = anchor_generator.generate(fsize)
+
+            print('\n' + 'anchors: ')
+            print(type(anchors))
+            print(anchors)
+
+            print('\n' + 'fsize: ')
+            print(type(fsize))
+            print(fsize)
+
+            print('\n' + 'self.box_ndim: ')
+            print(type(self.box_ndim))
+            print(self.box_ndim)
+
+            print('\n')
+
             anchors = anchors.reshape([*fsize, -1, self.box_ndim])
+
             anchors = anchors.transpose(ndim, *range(0, ndim), ndim + 1)
             anchors_list.append(anchors.reshape(-1, self.box_ndim))
             num_anchors = np.prod(anchors.shape[:-1])
