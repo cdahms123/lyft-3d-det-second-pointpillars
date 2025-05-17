@@ -568,7 +568,7 @@ def my_collate_fn(list_of_dicts: List[Dict]):
                 if isinstance(my_list[i], torch.Tensor):
                     my_list[i] = my_list[i].cpu().numpy()
 
-            batch_dict[item_name] = my_list
+            batch_dict[item_name] = np.concatenate(my_list, axis=0)
         elif item_name == 'coordinates':
             coordinates = []
             for idx, coords in enumerate(my_list):
@@ -589,22 +589,22 @@ def my_collate_fn(list_of_dicts: List[Dict]):
     return batch_dict
 # end function
 
-def convert_batch_to_torch(batch: Dict, float_dtype, device) -> dict:
-    torchBatch = {}
-    for key, v in batch.items():
-        if key in ['voxels', 'anchors', 'reg_targets', 'importance']:
-            torchBatch[key] = torch.tensor(v, dtype=torch.float32, device=device).to(float_dtype)
-        elif key in ['num_points', 'coordinates', 'labels']:
-            torchBatch[key] = torch.tensor(v, dtype=torch.int32, device=device)
-        elif key in ['num_voxels']:
-            torchBatch[key] = torch.tensor(v)
-        elif key in ['metrics', 'gt_names', 'metadata']:
-            torchBatch[key] = v
+def convert_batch_to_torch(batch_dict: Dict, float_dtype, device) -> dict:
+    torch_batch_dict = {}
+    for item_name, val in batch_dict.items():
+        if item_name in ['voxels', 'anchors', 'reg_targets', 'importance']:
+            torch_batch_dict[item_name] = torch.tensor(val, dtype=torch.float32, device=device).to(float_dtype)
+        elif item_name in ['num_points', 'coordinates', 'labels']:
+            torch_batch_dict[item_name] = torch.tensor(val, dtype=torch.int32, device=device)
+        elif item_name in ['num_voxels']:
+            torch_batch_dict[item_name] = torch.tensor(val)
+        elif item_name in ['metrics', 'gt_names', 'metadata']:
+            torch_batch_dict[item_name] = val
         else:
-            raise ValueError('error in convert_batch_to_torch, key ' + str(key) + ' is not recognized')
+            raise ValueError(f'error in convert_batch_to_torch, {item_name = } is not recognized')
         # end if
     # end for
-    return torchBatch
+    return torch_batch_dict
 # end function
 
 def second_det_to_lyft_box(detection):
